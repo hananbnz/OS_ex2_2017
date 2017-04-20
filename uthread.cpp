@@ -21,7 +21,7 @@
 /**
  * @brief  thread_vec vector that holds the threads created
  */
-std::vector<Thread*> thread_vec;
+std::vector<Thread*> thread_vec(MAX_THREAD_NUM, NULL);
 
 /**
  * @brief  thread_counter an integer number represents the number of threads
@@ -60,6 +60,19 @@ struct itimerval timer;
 int gotit = 0;
 
 
+sigset_t blocked_set;
+
+void block_vclock()
+{
+    sigemptyset(&blocked_set);
+    sigaddset(&blocked_set, SIGVTALRM);
+    sigprocmask(SIG_SETMASK, &blocked_set, NULL);
+}
+
+void unblock_vclock()
+{
+    sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
+}
 
 void switchThreads(void)
 {
@@ -70,6 +83,7 @@ void switchThreads(void)
     4. jump to the first thread in the ready queue
     5. set timer
      */
+    block_vclock();
     int ret_val = 0;
     Thread* cur_running_thread = current_running;
     // current_running is NULL when the current running thread is terminated
@@ -79,6 +93,7 @@ void switchThreads(void)
         ret_val = sigsetjmp(cur_running_thread->_env,1);
         if (ret_val != 0)
         {
+            unblock_vclock();
             return;
         }
         ready_queue.push(cur_running_thread);
@@ -89,6 +104,7 @@ void switchThreads(void)
 
         if (ret_val != 0)
         {
+            unblock_vclock();
             return;
         }
     }
@@ -96,12 +112,9 @@ void switchThreads(void)
     // TODO , check if front and pop is OK!!!
     current_running = ready_queue.front();
     current_running->setState(2);
+    current_running->addQuantum();
     ready_queue.pop();
-    // set timer - will restart the quantes timer
-    if (setitimer (ITIMER_VIRTUAL, &timer, NULL))
-    {
-        printf("setitimer error.");
-    }
+    unblock_vclock();
     siglongjmp(current_running->_env, 1);
 
 }
@@ -111,6 +124,12 @@ void timer_handler(int sig)
 {
     //switch thread
     switchThreads();
+    // set timer - will restart the quantes timer
+    if (setitimer (ITIMER_VIRTUAL, &timer, NULL))
+    {
+        printf("setitimer error.");
+    }
+
 //    printf("Timer expired\n");
 }
 
@@ -141,6 +160,7 @@ int start_timer(int usecs)
 }
 
 
+
 /*
  * Description: This function initializes the thread library.
  * You may assume that this function is called before any other thread library
@@ -158,6 +178,7 @@ int uthread_init(int quantum_usecs)
     thread_vec.push_back(new Thread());
     thread_counter++;
     current_running = thread_vec.back();
+    current_running->addQuantum();
     start_timer(quantum_usecs);
     return FUNC_SUCCESS;
 }
@@ -197,20 +218,20 @@ int get_minimum()
  * On failure, return -1.
 */
 int uthread_spawn(void (start_point_func)(void)) {
+    block_vclock();
     if (thread_counter < MAX_THREAD_NUM)
     {
         int min = get_minimum();
         thread_vec[min] = new Thread(min, STACK_SIZE, start_point_func);
         ready_queue.push(thread_vec[min]);
 //TODO READY QUEUE
+        unblock_vclock();
         return min;
 
     }
+    unblock_vclock();
     return FUNC_FAIL;
 }
-
-
-
 
 
 
@@ -288,12 +309,16 @@ int uthread_resume(int tid);
 */
 int uthread_sync(int tid);
 
+///////////////////////////////////////////////////////////////////////////////
 
 /*
  * Description: This function returns the thread ID of the calling thread.
  * Return value: The ID of the calling thread.
 */
-int uthread_get_tid();
+int uthread_get_tid()
+{
+    return current_running->getId();
+}
 
 
 /*
@@ -304,7 +329,20 @@ int uthread_get_tid();
  * should be increased by 1.
  * Return value: The total number of quantums.
 */
-int uthread_get_total_quantums();
+int uthread_get_total_quantums()
+{
+    block_vclock();
+    int sum = 0;
+    for(int i=0; i< MAX_THREAD_NUM; i++)
+    {
+        if(thread_vec[i] != NULL)
+        {
+            sum += thread_vec[i]->getQuantum();
+        }
+    }
+    unblock_vclock();
+    return sum;
+}
 
 
 /*
@@ -316,10 +354,13 @@ int uthread_get_total_quantums();
  * thread with ID tid exists it is considered as an error.
  * Return value: On success, return the number of quantums of the thread with ID tid. On failure, return -1.
 */
-int uthread_get_quantums(int tid);
-
-int main() {
-    printf("start timer");
-    start_timer(1000);
-    return 0;
+int uthread_get_quantums(int tid)
+{
+    return thread_vec[tid]->getQuantum();
 }
+
+//int main() {
+//    printf("start timer");
+//    start_timer(1000);
+//    return 0;
+//}

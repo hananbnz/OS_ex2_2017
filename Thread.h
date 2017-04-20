@@ -56,18 +56,13 @@ public:
 	 */
     int getQuantum() const {return _number_of_quantumes; };
 
+    void addQuantum() {_number_of_quantumes++;};
 
     /**
      * Gets two ints and changes the x and y cordinates accordingly.
      * @param state An int representing the x value of a point
      */
     void setState(int state);
-
-    /**
-     * Gets two ints and changes the x and y cordinates accordingly.
-     * @param state An int representing the x value of a point
-     */
-    sigjmp_buf getEnv() const{return _env;}
 
 
 private:
@@ -76,6 +71,7 @@ private:
     void *_stack;
     void *_thread_func;
     int _number_of_quantumes;
+
 public:
     sigjmp_buf _env;
 };
