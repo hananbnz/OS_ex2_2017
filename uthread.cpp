@@ -7,7 +7,6 @@
 #include "uthreads.h"
 #include <signal.h>
 #include <sys/time.h>
-#include <vector>
 #include <queue>
 #include <list>
 #include <setjmp.h>
@@ -19,6 +18,8 @@ std::string thread_termination_fail = "thread termination fail - invalid thread 
 std::string thread_spawn_fail = "thread spawn fail - id exceeds thread limit";
 std::string thread_block_fail_1 = "thread block fail - thread with given id doesn't exist";
 std::string thread_block_fail_2 = "thread block fail - can't block main thread";
+std::string thread_sync_fail_1 = "thread sync fail - thread with given id doesn't exist";
+std::string thread_sync_fail_2 = "thread sync fail - main thread can't call sync func";
 
 /**
  * @brief  thread_vec vector that holds the threads created
@@ -114,6 +115,15 @@ void switchThreads(void)
             return;
         }
         ready_queue.push(cur_running_thread);
+        int num_of_synced_threads = cur_running_thread->getNumOfSyncedThreads();
+        if(num_of_synced_threads > 0)
+        {
+            for (int i = 0; i < num_of_synced_threads; ++i)
+            {
+                thread_vec[i]->setState(READY_STATE);
+                ready_queue.push(thread_vec[i]);
+            }
+        }
     }
     if(cur_running_thread != NULL && cur_running_thread->getState() == BLOCKED_STATE)
     {
@@ -164,6 +174,7 @@ int start_timer(int usecs)
         printf("sigaction error.");
     }
 
+    // TODO try to put 0 in timer.it_value.tv_usec for resetting the timer every time
     // Configure the timer to expire after 1 sec... */
     timer.it_value.tv_sec = 0;		// first time interval, seconds part
     timer.it_value.tv_usec = usecs;		// first time interval, microseconds part
@@ -272,6 +283,15 @@ int uthread_terminate(int tid)
     // thread self termination
     if (current_running->getId() == tid)
     {
+        int num_of_synced_threads = current_running->getNumOfSyncedThreads();
+        if(num_of_synced_threads > 0)
+        {
+            for (int i = 0; i < num_of_synced_threads; ++i)
+            {
+                thread_vec[i]->setState(READY_STATE);
+                ready_queue.push(thread_vec[i]);
+            }
+        }
         //thread 0 termination
         if(tid == 0)
         {
@@ -332,7 +352,7 @@ int uthread_block(int tid)
         block_vclock();//TODO check block/unblock
     }
     unblock_vclock();
-    return 0;
+    return FUNC_SUCCESS;
 }
 
 
@@ -375,7 +395,30 @@ int uthread_resume(int tid)
  * the BLOCKED state a scheduling decision should be made.
  * Return value: On success, return 0. On failure, return -1.
 */
-int uthread_sync(int tid);
+int uthread_sync(int tid)
+{
+    block_vclock();
+    //invalid tid
+    if(tid >= MAX_THREAD_NUM || thread_vec[tid] == NULL)
+    {
+        thread_library_function_fail(thread_sync_fail_1);
+        unblock_vclock();
+        return FUNC_FAIL;
+    }
+    if(current_running->getId() == 0)
+    {
+        thread_library_function_fail(thread_sync_fail_2);
+        unblock_vclock();
+        return FUNC_FAIL;
+    }
+    current_running->setState(BLOCKED_STATE);
+    thread_vec[tid]->setNumOfSyncedThreads(current_running->getId());
+    timer_handler(1);
+    block_vclock();//TODO check block/unblock
+    unblock_vclock();
+    return FUNC_SUCCESS;
+
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 

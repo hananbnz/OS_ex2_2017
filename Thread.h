@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <malloc.h>
 #include <setjmp.h>
+#include <vector>
 
 #define DEFAULT_ID 0
 #define DEFAULT_STACK_SIZE 4096
@@ -58,6 +59,10 @@ public:
 
     void addQuantum() {_number_of_quantumes++;};
 
+    int getNumOfSyncedThreads(){ return (int)_synced_threads.size();};
+
+    void setNumOfSyncedThreads(int tid);
+
     /**
      * Gets two ints and changes the x and y cordinates accordingly.
      * @param state An int representing the x value of a point
@@ -71,6 +76,7 @@ private:
     void *_stack;
     void *_thread_func;
     int _number_of_quantumes;
+    std::vector<int> _synced_threads;
 
 public:
     sigjmp_buf _env;
