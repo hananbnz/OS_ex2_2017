@@ -125,5 +125,3 @@ void Thread::setState(int state)
 }
 
 
-// ------------------ Other methods ------------------------
-
