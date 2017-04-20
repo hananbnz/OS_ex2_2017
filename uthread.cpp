@@ -39,7 +39,8 @@ std::queue<Thread*> blocked_queue;
  * @brief  current_running pointer to the running thread
  */
 Thread* current_running = NULL;
-
+struct sigaction sa;
+struct itimerval timer;
 
 int gotit = 0;
 
@@ -54,13 +55,13 @@ void switchThreads(void)
     static int currentThread = 0;
 
 
-    int ret_val = sigsetjmp(env[currentThread],1);
-    printf("SWITCH: ret_val=%d\n", ret_val);
-    if (ret_val == 1) {
-        return;
-    }
-    currentThread = 1 - currentThread;
-    siglongjmp(env[currentThread],1);
+//    int ret_val = sigsetjmp(env[currentThread],1);
+//    printf("SWITCH: ret_val=%d\n", ret_val);
+//    if (ret_val == 1) {
+//        return;
+//    }
+//    currentThread = 1 - currentThread;
+//    siglongjmp(env[currentThread],1);
 }
 
 
@@ -73,8 +74,7 @@ void timer_handler(int sig)
 
 
 int start_timer(int usecs) {
-    struct sigaction sa;
-    struct itimerval timer;
+
 //    printf("in timer...");
     // Install timer_handler as the signal handler for SIGVTALRM.
     sa.sa_handler = &timer_handler;
@@ -199,8 +199,6 @@ int uthread_terminate(int tid)
 
     }
     //TODO DEAL WITH MAIN TERMINATION
-
-
 
 
 
