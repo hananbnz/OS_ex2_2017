@@ -11,14 +11,14 @@
 #include <queue>
 #include <list>
 #include <setjmp.h>
-#include <stdlib.h>
-
-
+#include<string>
 #define FUNC_FAIL -1
 #define FUNC_SUCCESS 0
 
-char *thread_termination_fail = "thread termination fail - invalid thread id";
-char *thread_spawn_fail = "thread spawn fail - id exceeds thread limit";
+std::string thread_termination_fail = "thread termination fail - invalid thread id";
+std::string thread_spawn_fail = "thread spawn fail - id exceeds thread limit";
+std::string thread_block_fail_1 = "thread block fail - thread with given id doesn't exist";
+std::string thread_block_fail_2 = "thread block fail - can't block main thread";
 
 /**
  * @brief  thread_vec vector that holds the threads created
@@ -68,12 +68,12 @@ sigset_t blocked_set;
 // ------------------------------ Library functions ----------------------------
 
 
-void thread_library_function_fail(char* text)
+void thread_library_function_fail(std::string text)
 {
     fprintf(stderr, "thread library error: %s\n", text);
 }
 
-void system_call_fails(char* text)
+void system_call_fails(std::string text)
 {
     fprintf(stderr, "system error: %s\n", text);
 }
@@ -175,7 +175,6 @@ int start_timer(int usecs)
     }
     return FUNC_SUCCESS;
 }
-
 
 
 /*
@@ -285,6 +284,7 @@ int uthread_terminate(int tid)
         if(thread_counter == 1)
         {
             unblock_vclock();
+            //TODO FIX EXIT
             exit(0);
         }
     }
@@ -305,7 +305,27 @@ int uthread_terminate(int tid)
 */
 int uthread_block(int tid)
 {
-    // cur_running_thread->setState(3); // 1 - READY_STATE
+    block_vclock();
+    //invalid tid
+    if(tid >= MAX_THREAD_NUM || thread_vec[tid] == NULL)
+    {
+        thread_library_function_fail(thread_block_fail_1);
+        unblock_vclock();
+        return FUNC_FAIL;
+    }
+    //tid = 0 - block main thread
+    if(tid == 0)
+    {
+        thread_library_function_fail(thread_block_fail_2);
+        unblock_vclock();
+        return FUNC_FAIL;
+    }
+    thread_vec[tid]->setState(3);
+    //self thread block
+    if(tid == current_running->getId())
+    {
+        timer_handler(1);
+    }
     return 0;
 }
 
