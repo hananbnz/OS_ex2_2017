@@ -72,7 +72,7 @@ Thread::Thread()
     _stack = (void*)malloc(DEFAULT_STACK_SIZE);
     _state = READY_STATE;
     _thread_func = NULL;
-    _number_of_quantumes = 1;
+    _number_of_quantumes = 0;
     sp = (address_t)stack + STACK_SIZE - sizeof(address_t);
     pc = (address_t)_thread_func;
     sigsetjmp(_env, 1);
@@ -86,7 +86,7 @@ Thread::Thread(const int id, int stack_size,void (*func)(void))
 {
     _id = id;
     _stack = (void*)malloc(stack_size);
-    _thread_func = NULL;
+    _thread_func = func;
     _state = READY_STATE;
     _number_of_quantumes = 0;
     sp = (address_t)stack + STACK_SIZE - sizeof(address_t);
@@ -121,3 +121,12 @@ void Thread::setNumOfSyncedThreads(int tid)
     _synced_threads.push_back(tid);
 }
 
+void Thread::addQuantum()
+{
+    _number_of_quantumes++;
+}
+
+void  Thread::run_thread()
+{
+    _thread_func;
+}

@@ -55,9 +55,9 @@ public:
 	 * Access method for the quantum value.
 	 * @return An int representing the quantum value
 	 */
-    int getQuantum() const {return _number_of_quantumes; };
+    int getQuantum() {return _number_of_quantumes; };
 
-    void addQuantum() {_number_of_quantumes++;};
+    void addQuantum();
 
     int getNumOfSyncedThreads(){ return (int)_synced_threads.size();};
 
@@ -68,13 +68,14 @@ public:
      * @param state An int representing the x value of a point
      */
     void setState(int state);
+    void run_thread();
 
 
 private:
     int _id; /**< the id of this Thread object*/
     int _state; /**< the state of this Thread object**/
     void *_stack;
-    void *_thread_func;
+    void (*_thread_func)(void);
     int _number_of_quantumes;
     std::vector<int> _synced_threads;
 

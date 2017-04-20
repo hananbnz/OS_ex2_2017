@@ -137,12 +137,17 @@ void switchThreads(void)
     }
     // good to all situations
     // TODO , check if front and pop is OK!!!
-    while(ready_queue.front()->getState() == BLOCKED_STATE)
+    while(!ready_queue.empty() && ready_queue.front()->getState() ==
+                                  BLOCKED_STATE)
     {
         ready_queue.pop();
     }
     current_running = ready_queue.front();
     current_running->setState(RUNNING_STATE);
+    if (current_running != 0)
+    {
+        current_running->run_thread();
+    }
     current_running->addQuantum();
     ready_queue.pop();
     unblock_vclock();
@@ -206,9 +211,10 @@ int uthread_init(int quantum_usecs)
     {
         return FUNC_FAIL;
     }
-    thread_vec.push_back(new Thread());
+    thread_vec[0] = new Thread();
     thread_counter++;
-    current_running = thread_vec.back();
+    current_running = thread_vec[0];
+    thread_vec[0]->setState(RUNNING_STATE);
     current_running->addQuantum();
     start_timer(quantum_usecs);
     return FUNC_SUCCESS;
