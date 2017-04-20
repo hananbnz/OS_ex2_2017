@@ -74,6 +74,7 @@ void switchThreads(void)
 void timer_handler(int sig)
 {
     //switch thread
+    switchThreads();
     gotit = 1;
 //    printf("Timer expired\n");
 }

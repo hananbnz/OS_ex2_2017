@@ -8,6 +8,7 @@
 
 #include <stdlib.h>
 #include <malloc.h>
+#include <setjmp.h>
 
 #define DEFAULT_ID 0
 #define DEFAULT_STACK_SIZE 4096
@@ -69,6 +70,7 @@ private:
     void *_stack;
     void *_thread_func;
     int _number_of_quantumes;
+    sigjmp_buf _env;
 };
 
 
