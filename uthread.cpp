@@ -104,9 +104,9 @@ void switchThreads(void)
     int ret_val = 0;
     Thread* cur_running_thread = current_running;
     // current_running is NULL when the current running thread is terminated
-    if(cur_running_thread != NULL && cur_running_thread->getState() == 2) //RUNNING_STATE
+    if(cur_running_thread != NULL && cur_running_thread->getState() == RUNNING_STATE)
     {
-        cur_running_thread->setState(1); // 1 - READY_STATE
+        cur_running_thread->setState(READY_STATE);
         ret_val = sigsetjmp(cur_running_thread->_env,1);
         if (ret_val != 0)
         {
@@ -115,7 +115,7 @@ void switchThreads(void)
         }
         ready_queue.push(cur_running_thread);
     }
-    if(cur_running_thread != NULL && cur_running_thread->getState() == 3) // BLOCKED_STATE
+    if(cur_running_thread != NULL && cur_running_thread->getState() == BLOCKED_STATE)
     {
         ret_val = sigsetjmp(cur_running_thread->_env,1);
 
@@ -127,12 +127,12 @@ void switchThreads(void)
     }
     // good to all situations
     // TODO , check if front and pop is OK!!!
-    while(ready_queue.front()->getState() == 3)
+    while(ready_queue.front()->getState() == BLOCKED_STATE)
     {
         ready_queue.pop();
     }
     current_running = ready_queue.front();
-    current_running->setState(2);
+    current_running->setState(RUNNING_STATE);
     current_running->addQuantum();
     ready_queue.pop();
     unblock_vclock();
@@ -324,7 +324,7 @@ int uthread_block(int tid)
         unblock_vclock();
         return FUNC_FAIL;
     }
-    thread_vec[tid]->setState(3);
+    thread_vec[tid]->setState(BLOCKED_STATE);
     //self thread block
     if(tid == current_running->getId())
     {
@@ -343,7 +343,24 @@ int uthread_block(int tid)
  * ID tid exists it is considered as an error.
  * Return value: On success, return 0. On failure, return -1.
 */
-int uthread_resume(int tid);
+int uthread_resume(int tid)
+{
+    block_vclock();
+    //invalid tid
+    if(tid >= MAX_THREAD_NUM || thread_vec[tid] == NULL)
+    {
+        thread_library_function_fail(thread_block_fail_1);
+        unblock_vclock();
+        return FUNC_FAIL;
+    }
+    if(thread_vec[tid]->getState() == BLOCKED_STATE)
+    {
+        thread_vec[tid]->setState(READY_STATE);
+        ready_queue.push(thread_vec[tid]);
+    }
+    unblock_vclock();
+    return FUNC_SUCCESS;
+}
 
 
 /*
