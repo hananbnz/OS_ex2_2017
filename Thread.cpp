@@ -1,10 +1,4 @@
 
-
-#include "Thread.h"
-//
-// Created by reuveny on 4/9/17.
-//
-
 #include <iostream>
 #include <stdlib.h>
 #include <malloc.h>
@@ -121,8 +115,3 @@ void Thread::setState(int state)
 {
     _state = state;
 }
-
-////////
-//////
-//// reuven is the king
-//// hhhhhhhhhhhhhhhhhhhhhhhhhhhhh
