@@ -144,10 +144,10 @@ void switchThreads(void)
     }
     current_running = ready_queue.front();
     current_running->setState(RUNNING_STATE);
-    if (current_running != 0)
-    {
-        current_running->run_thread();
-    }
+//    if (current_running != 0)
+//    {
+//        current_running->run_thread();
+//    }
     current_running->addQuantum();
     ready_queue.pop();
     unblock_vclock();
