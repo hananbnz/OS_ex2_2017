@@ -1,12 +1,18 @@
+
+
+
+// ------------------------------ Includes ----------------------------
+#include <stdio.h>
 #include "Thread.h"
 #include "uthreads.h"
-#include <stdio.h>
 #include <signal.h>
 #include <sys/time.h>
 #include <vector>
 #include <queue>
 #include <list>
 #include <setjmp.h>
+
+
 
 #define FUNC_FAIL -1
 #define FUNC_SUCCESS 0
@@ -39,10 +45,22 @@ std::queue<Thread*> blocked_queue;
  * @brief  current_running pointer to the running thread
  */
 Thread* current_running = NULL;
+
+/**
+ *
+ */
 struct sigaction sa;
+
+/**
+ *
+ */
 struct itimerval timer;
 
+sigjmp_buf env[MAX_THREAD_NUM];
+
 int gotit = 0;
+
+
 
 void switchThreads(void)
 {
@@ -50,24 +68,31 @@ void switchThreads(void)
     1. stop running current thread
     2. save current state of the current running thread
     3. jump to the first thread in the ready queue
+    4. set timer
      */
 
-    // will restart the quantes timer
+
+    static int currentThread = 0;
+
+    int ret_val = sigsetjmp(env[currentThread],1);
+    printf("SWITCH: ret_val=%d\n", ret_val);
+    if (ret_val == 1) {
+        return;
+    }
+    currentThread = 1 - currentThread;
+    siglongjmp(env[currentThread],1);
+
+
+
+
+
+
+
+    // set timer - will restart the quantes timer
     if (setitimer (ITIMER_VIRTUAL, &timer, NULL))
     {
         printf("setitimer error.");
     }
-
-    static int currentThread = 0;
-
-
-//    int ret_val = sigsetjmp(env[currentThread],1);
-//    printf("SWITCH: ret_val=%d\n", ret_val);
-//    if (ret_val == 1) {
-//        return;
-//    }
-//    currentThread = 1 - currentThread;
-//    siglongjmp(env[currentThread],1);
 }
 
 
@@ -80,12 +105,12 @@ void timer_handler(int sig)
 }
 
 
-int start_timer(int usecs) {
-
-//    printf("in timer...");
+int start_timer(int usecs)
+{
     // Install timer_handler as the signal handler for SIGVTALRM.
     sa.sa_handler = &timer_handler;
-    if (sigaction(SIGVTALRM, &sa,NULL) < 0) {
+    if (sigaction(SIGVTALRM, &sa,NULL) < 0)
+    {
         printf("sigaction error.");
     }
 
@@ -98,10 +123,11 @@ int start_timer(int usecs) {
     timer.it_interval.tv_usec = usecs;	// following time intervals, microseconds part
 
     // Start a virtual timer. It counts down whenever this process is executing.
-    if (setitimer (ITIMER_VIRTUAL, &timer, NULL)) {
+    if (setitimer (ITIMER_VIRTUAL, &timer, NULL))
+    {
         printf("setitimer error.");
     }
-
+    return FUNC_SUCCESS;
 }
 
 
