@@ -6,6 +6,7 @@
 #include <vector>
 #include <queue>
 #include <list>
+#include <setjmp.h>
 
 #define FUNC_FAIL -1
 #define FUNC_SUCCESS 0
@@ -42,20 +43,39 @@ Thread* current_running = NULL;
 
 int gotit = 0;
 
+void switchThreads(void)
+{
+    // will restart the quantes timer
+    if (setitimer (ITIMER_VIRTUAL, &timer, NULL))
+    {
+        printf("setitimer error.");
+    }
+
+    static int currentThread = 0;
+
+
+    int ret_val = sigsetjmp(env[currentThread],1);
+    printf("SWITCH: ret_val=%d\n", ret_val);
+    if (ret_val == 1) {
+        return;
+    }
+    currentThread = 1 - currentThread;
+    siglongjmp(env[currentThread],1);
+}
+
+
 void timer_handler(int sig)
 {
     //switch thread
-
     gotit = 1;
-    for(int i=0;i<100;i++){printf("running...\n");}
-    printf("Timer expired\n");
+//    printf("Timer expired\n");
 }
 
 
 int start_timer(int usecs) {
     struct sigaction sa;
     struct itimerval timer;
-    printf("in timer...");
+//    printf("in timer...");
     // Install timer_handler as the signal handler for SIGVTALRM.
     sa.sa_handler = &timer_handler;
     if (sigaction(SIGVTALRM, &sa,NULL) < 0) {
