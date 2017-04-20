@@ -127,6 +127,10 @@ void switchThreads(void)
     }
     // good to all situations
     // TODO , check if front and pop is OK!!!
+    while(ready_queue.front()->getState() == 3)
+    {
+        ready_queue.pop();
+    }
     current_running = ready_queue.front();
     current_running->setState(2);
     current_running->addQuantum();
