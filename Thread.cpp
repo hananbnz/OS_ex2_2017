@@ -1,6 +1,4 @@
-//
-// Created by reuveny on 4/19/17.
-//
+
 
 #include "Thread.hpp"
 //
