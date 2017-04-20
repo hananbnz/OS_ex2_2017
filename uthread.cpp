@@ -46,6 +46,12 @@ int gotit = 0;
 
 void switchThreads(void)
 {
+    /**
+    1. stop running current thread
+    2. save current state of the current running thread
+    3. jump to the first thread in the ready queue
+     */
+
     // will restart the quantes timer
     if (setitimer (ITIMER_VIRTUAL, &timer, NULL))
     {
