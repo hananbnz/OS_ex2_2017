@@ -65,33 +65,45 @@ void switchThreads(void)
 {
     /**
     1. stop running current thread
-    2. save current state of the current running thread
-    3. jump to the first thread in the ready queue
-    4. set timer
+    2. save current state of the current running thread - if not NULL
+    3. move running thread if not NULL to end of ready queue
+    4. jump to the first thread in the ready queue
+    5. set timer
      */
-
-
-    static int currentThread = 0;
-
-    int ret_val = sigsetjmp(env[currentThread],1);
-    printf("SWITCH: ret_val=%d\n", ret_val);
-    if (ret_val == 1) {
-        return;
+    int ret_val = 0;
+    Thread* cur_running_thread = current_running;
+    // current_running is NULL when the current running thread is terminated
+    if(cur_running_thread != NULL && cur_running_thread->getState() == 2) //RUNNING_STATE
+    {
+        cur_running_thread->setState(1); // 1 - READY_STATE
+        ret_val = sigsetjmp(cur_running_thread->_env,1);
+        if (ret_val != 0)
+        {
+            return;
+        }
+        ready_queue.push(cur_running_thread);
     }
-    currentThread = 1 - currentThread;
-    siglongjmp(env[currentThread],1);
+    if(cur_running_thread != NULL && cur_running_thread->getState() == 3) // BLOCKED_STATE
+    {
+        ret_val = sigsetjmp(cur_running_thread->_env,1);
 
-
-
-
-
-
-
+        if (ret_val != 0)
+        {
+            return;
+        }
+    }
+    // good to all situations
+    // TODO , check if front and pop is OK!!!
+    current_running = ready_queue.front();
+    current_running->setState(2);
+    ready_queue.pop();
     // set timer - will restart the quantes timer
     if (setitimer (ITIMER_VIRTUAL, &timer, NULL))
     {
         printf("setitimer error.");
     }
+    siglongjmp(current_running->_env, 1);
+
 }
 
 
@@ -99,7 +111,6 @@ void timer_handler(int sig)
 {
     //switch thread
     switchThreads();
-    gotit = 1;
 //    printf("Timer expired\n");
 }
 
@@ -246,7 +257,11 @@ int uthread_terminate(int tid)
  * effect and is not considered as an error.
  * Return value: On success, return 0. On failure, return -1.
 */
-int uthread_block(int tid);
+int uthread_block(int tid)
+{
+    // cur_running_thread->setState(3); // 1 - READY_STATE
+    return 0;
+}
 
 
 /*
