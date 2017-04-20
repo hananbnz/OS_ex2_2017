@@ -11,12 +11,14 @@
 #include <queue>
 #include <list>
 #include <setjmp.h>
-
+#include <stdlib.h>
 
 
 #define FUNC_FAIL -1
 #define FUNC_SUCCESS 0
 
+char *thread_termination_fail = "thread termination fail - invalid thread id";
+char *thread_spawn_fail = "thread spawn fail - id exceeds thread limit";
 
 /**
  * @brief  thread_vec vector that holds the threads created
@@ -62,6 +64,20 @@ int gotit = 0;
 
 sigset_t blocked_set;
 
+
+// ------------------------------ Library functions ----------------------------
+
+
+void thread_library_function_fail(char* text)
+{
+    fprintf(stderr, "thread library error: %s\n", text);
+}
+
+void system_call_fails(char* text)
+{
+    fprintf(stderr, "system error: %s\n", text);
+}
+
 void block_vclock()
 {
     sigemptyset(&blocked_set);
@@ -73,6 +89,7 @@ void unblock_vclock()
 {
     sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
 }
+
 
 void switchThreads(void)
 {
@@ -183,19 +200,13 @@ int uthread_init(int quantum_usecs)
     return FUNC_SUCCESS;
 }
 
-
-
-
-
-
-
-//////////////////////////////////////////////////////////////
-
-
-
-int get_minimum()
+/**
+ *
+ * @return
+ */
+int get_minimum_id()
 {
-    for (int i = 0; i<thread_counter;i++)
+    for (int i = 1; i<MAX_THREAD_NUM;i++)
     {
         if (thread_vec[i] == NULL) {
             return i;
@@ -204,8 +215,6 @@ int get_minimum()
     return thread_counter;
 }
 
-
-//////////////////////////////////////////////////////////////
 
 /*
  * Description: This function creates a new thread, whose entry point is the
@@ -219,20 +228,21 @@ int get_minimum()
 */
 int uthread_spawn(void (start_point_func)(void)) {
     block_vclock();
+    //check if adding thread exceeds thread limit
     if (thread_counter < MAX_THREAD_NUM)
     {
-        int min = get_minimum();
+        //get minimum thread id
+        int min = get_minimum_id();
         thread_vec[min] = new Thread(min, STACK_SIZE, start_point_func);
         ready_queue.push(thread_vec[min]);
-//TODO READY QUEUE
+        thread_counter++;
         unblock_vclock();
         return min;
-
     }
     unblock_vclock();
+    thread_library_function_fail(thread_spawn_fail);
     return FUNC_FAIL;
 }
-
 
 
 /*
@@ -248,24 +258,39 @@ int uthread_spawn(void (start_point_func)(void)) {
 */
 int uthread_terminate(int tid)
 {
-    if(tid >= thread_counter)
+    block_vclock();
+    // thread id invalid
+    if(tid >= MAX_THREAD_NUM || thread_vec[tid] == NULL)
     {
-        //TODO error change
+        thread_library_function_fail(thread_termination_fail);
+        unblock_vclock();
         return FUNC_FAIL;
     }
-    if(thread_vec[tid] == NULL)
+    // thread self termination
+    if (current_running->getId() == tid)
     {
-        //TODO error change
-        return FUNC_FAIL;
+        //thread 0 termination
+        if(tid == 0)
+        {
+            for(int i = 1;i<MAX_THREAD_NUM; i++)
+            {
+                delete thread_vec[tid];
+                thread_vec[tid] = NULL;
+            }
+            thread_counter = 1;
+        }
+        delete thread_vec[tid];
+        thread_vec[tid] = NULL;
+        timer_handler(1);
+        if(thread_counter == 1)
+        {
+            unblock_vclock();
+            exit(0);
+        }
     }
-    if (current_running->getId() == tid )
-    {
-
-    }
-    //TODO DEAL WITH MAIN TERMINATION
-
-
-
+    thread_counter--;
+    unblock_vclock();
+    return  FUNC_SUCCESS;
 }
 
 
