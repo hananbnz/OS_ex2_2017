@@ -329,7 +329,9 @@ int uthread_block(int tid)
     if(tid == current_running->getId())
     {
         timer_handler(1);
+        block_vclock();//TODO check block/unblock
     }
+    unblock_vclock();
     return 0;
 }
 
