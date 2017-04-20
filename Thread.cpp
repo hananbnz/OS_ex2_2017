@@ -73,7 +73,6 @@ Thread::Thread()
     _state = READY_STATE;
     _thread_func = NULL;
     _number_of_quantumes = 1;
-    _synced_threads = NULL;
     sp = (address_t)stack + STACK_SIZE - sizeof(address_t);
     pc = (address_t)_thread_func;
     sigsetjmp(_env, 1);
@@ -90,7 +89,6 @@ Thread::Thread(const int id, int stack_size,void (*func)(void))
     _thread_func = NULL;
     _state = READY_STATE;
     _number_of_quantumes = 0;
-    _synced_threads = NULL;
     sp = (address_t)stack + STACK_SIZE - sizeof(address_t);
     pc = (address_t)_thread_func;
     sigsetjmp(_env, 1);
