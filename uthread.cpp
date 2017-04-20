@@ -56,7 +56,6 @@ struct sigaction sa;
  */
 struct itimerval timer;
 
-sigjmp_buf env[MAX_THREAD_NUM];
 
 int gotit = 0;
 
