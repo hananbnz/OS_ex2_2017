@@ -155,9 +155,6 @@ void switchThreads(void)
     }
 
 
-//////////////////////////////////SECOND RUN NEXT THREAD
-
-
     current_running = ready_queue.front();
     while (ready_queue.front() == NULL)
     {
@@ -168,10 +165,7 @@ void switchThreads(void)
     current_running->addQuantum();
     ready_queue.pop();
 //    unblock_vclock();
-//    if (setitimer (ITIMER_VIRTUAL, &timer, NULL))
-//    {
-//        printf("setitimer error.");
-//    }
+
     siglongjmp(current_running->_env, 1);
 
 }
@@ -179,15 +173,11 @@ void switchThreads(void)
 
 void timer_handler(int sig)
 {
-
     block_vclock();
-//    printf("running: %d\n",current_running->getId());
     printf("Timer expired\n");
     // switch threads
     switchThreads();
-//    printf("after switch\n");
     unblock_vclock();
-
     // set timer - will restart the quantes timer
     if (setitimer (ITIMER_VIRTUAL, &timer, NULL))
     {
@@ -206,8 +196,6 @@ int start_timer(int usecs)
     {
         printf("sigaction error.");
     }
-
-    // TODO try to put 0 in timer.it_value.tv_usec for resetting the timer every time
     // Configure the timer to expire after 1 sec... */
     timer.it_value.tv_sec = 0;		// first time interval, seconds part
     timer.it_value.tv_usec = usecs;		// first time interval, microseconds part
@@ -334,15 +322,18 @@ int uthread_terminate(int tid)
         {
             for(int i = 1;i<MAX_THREAD_NUM; i++)
             {
-                total_number_of_quantes += thread_vec[tid]->getQuantum();
-                delete thread_vec[tid];
-                thread_vec[tid] = NULL;
+                if(thread_vec[i] != NULL)
+                {
+                    total_number_of_quantes += thread_vec[i]->getQuantum();
+                    delete thread_vec[i];
+                    thread_vec[i] = NULL;
+                }
             }
             thread_counter = 1;
         }
 
         unblock_vclock();
-        total_number_of_quantes += thread_vec[tid]->getQuantum();
+//        total_number_of_quantes += thread_vec[tid]->getQuantum();
         delete thread_vec[tid];
         thread_vec[tid] = NULL;
         current_running = NULL;
@@ -352,8 +343,13 @@ int uthread_terminate(int tid)
         if(thread_counter == 1)
         {
             unblock_vclock();
+            total_number_of_quantes += thread_vec[tid]->getQuantum();
             //TODO FIX EXIT
             exit(0);
+        }
+        else
+        {
+            total_number_of_quantes += thread_vec[tid]->getQuantum();
         }
 
     }
@@ -507,7 +503,14 @@ int uthread_get_tid()
 */
 int uthread_get_total_quantums()
 {
-    return thread_vec[0]->getQuantum() + total_number_of_quantes;
+    for(int i = 0;i < MAX_THREAD_NUM; i++)
+    {
+        if(thread_vec[i] != NULL)
+        {
+            total_number_of_quantes += thread_vec[i]->getQuantum();
+        }
+    }
+    return total_number_of_quantes;
 }
 
 
