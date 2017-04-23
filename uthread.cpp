@@ -106,13 +106,10 @@ void switchThreads(void)
     4. jump to the first thread in the ready queue
     5. set timer
      */
-//    block_vclock();
-//    printf("the running element: ", )
     int ret_val = 0;
     Thread* cur_running_thread = current_running;
 
     //////////////////////////////////FIRST STOP RUNNING THREADS
-
 
     // current_running is NULL when the current running thread is terminated
     if(cur_running_thread != NULL && cur_running_thread->getState() == RUNNING_STATE)
@@ -121,7 +118,6 @@ void switchThreads(void)
         ret_val = sigsetjmp(cur_running_thread->_env,1);
         if (ret_val != 0)
         {
-//            unblock_vclock();
             return;
         }
         ready_queue.push(cur_running_thread);
@@ -135,21 +131,16 @@ void switchThreads(void)
             }
         }
     }
-//    ready_queue.front()->addQuantum();
-
-
     if(cur_running_thread != NULL && cur_running_thread->getState() == BLOCKED_STATE)
     {
         ret_val = sigsetjmp(cur_running_thread->_env,1);
 
         if (ret_val != 0)
         {
-//            unblock_vclock();
             return;
         }
     }
-    // good to all situations
-    // TODO , check if front and pop is OK!!!
+    // pop out blocked threads
     while(!ready_queue.empty() && ready_queue.front()->getState() ==
                                   BLOCKED_STATE)
     {
@@ -158,16 +149,17 @@ void switchThreads(void)
 
 
     current_running = ready_queue.front();
+
+    // pop out deleted threads
     while (ready_queue.front() == NULL)
     {
         ready_queue.pop();
         current_running = ready_queue.front();
     }
+
     current_running->setState(RUNNING_STATE);
     current_running->addQuantum();
     ready_queue.pop();
-//    unblock_vclock();
-
     siglongjmp(current_running->_env, 1);
 
 }
