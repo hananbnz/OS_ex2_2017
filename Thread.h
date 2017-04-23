@@ -1,8 +1,3 @@
-//
-// Created by reuveny on 4/9/17.
-//
-
-
 #ifndef EX2_THREAD_H
 #define EX2_THREAD_H
 
@@ -11,14 +6,13 @@
 #include <setjmp.h>
 #include <vector>
 
+
 #define DEFAULT_ID 0
 #define DEFAULT_STACK_SIZE 4096
 
-//TODO STATE DEFINITIONS
 #define READY_STATE 1
 #define RUNNING_STATE 2
 #define BLOCKED_STATE 3
-
 
 
 class Thread
@@ -39,6 +33,8 @@ public:
     */
    Thread(const int id, int stack_size,void (*func)(void));
 
+    //  Getter Functions
+
     /**
 	 * Access method for the id value.
 	 * @return An int representing the id value
@@ -57,24 +53,33 @@ public:
 	 */
     int getQuantum() {return _number_of_quantumes; };
 
-    void addQuantum();
-
     int getNumOfSyncedThreads(){ return (int)_synced_threads.size();};
 
-    void setNumOfSyncedThreads(int tid);
+    //  Setter Functions
 
     /**
      * Gets two ints and changes the x and y cordinates accordingly.
      * @param state An int representing the x value of a point
      */
     void setState(int state);
-    void run_thread();
+
+    /**
+     * Adds quantum to this thread
+     */
+    void addQuantum();
+
+    /**
+     *
+     * @param tid
+     */
+    void setNumOfSyncedThreads(int tid);
 
 
 private:
     int _id; /**< the id of this Thread object*/
     int _state; /**< the state of this Thread object**/
-    void *_stack;
+//    void *_stack;
+    char* _stack[DEFAULT_STACK_SIZE];
     void (*_thread_func)(void);
     int _number_of_quantumes;
     std::vector<int> _synced_threads;

@@ -8,6 +8,8 @@ void f (void)
 	int i = 1;
 	while(1)
 	{
+//        printf( "in f: i: %d, quantom num: %d \n", i, uthread_get_quantums
+//                (tid));
 		if(i == uthread_get_quantums(tid))
 		{
 			std::cout << "f" << tid << " Quanta:" <<  i << std::endl;
@@ -28,6 +30,8 @@ void g (void)
 	int i = 1;
 	while(1)
 	{
+//        printf( "in g: i: %d, quantom num: %d \n", i, uthread_get_quantums
+//                (tid));
 		if(i == uthread_get_quantums(tid))
 		{
 			std::cout << "g" << tid << " Quanta:" <<  i << std::endl;
@@ -61,7 +65,7 @@ int main(void)
 				{
 					std::cout << "m spawns f at (1) " << uthread_spawn(f) << std::endl;
 
-                    uthread_get_tid();
+//                    uthread_get_tid();
 
 					std::cout << "m spawns g at (2) " << uthread_spawn(g) << std::endl;
 				}

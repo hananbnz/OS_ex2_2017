@@ -13,7 +13,7 @@
 #define SECOND 1000000
 #define STACK_SIZE 4096
 
-char stack[STACK_SIZE];
+//char stack[STACK_SIZE];
 
 
 
@@ -49,11 +49,11 @@ address_t sp, pc;
 Thread::Thread()
 {
     _id = DEFAULT_ID;
-    _stack = (void*)malloc(DEFAULT_STACK_SIZE);
+//    _stack = (void*)malloc(DEFAULT_STACK_SIZE);
     _state = READY_STATE;
     _thread_func = NULL;
     _number_of_quantumes = 0;
-    sp = (address_t)stack + STACK_SIZE - sizeof(address_t);
+    sp = (address_t)_stack + STACK_SIZE - sizeof(address_t);
     pc = (address_t)_thread_func;
     sigsetjmp(_env, 1);
     (_env->__jmpbuf)[JB_SP] = translate_address(sp);
@@ -65,13 +65,13 @@ Thread::Thread()
 Thread::Thread(const int id, int stack_size,void (*func)(void))
 {
     _id = id;
-    _stack = (void*)malloc(stack_size);
+//    _stack = (void*)malloc(stack_size);
     _thread_func = func;
     _state = READY_STATE;
     _number_of_quantumes = 0;
-    sp = (address_t)stack + STACK_SIZE - sizeof(address_t);
+    sp = (address_t)_stack + STACK_SIZE - sizeof(address_t);
     pc = (address_t)_thread_func;
-    sigsetjmp(_env, 1);
+    sigsetjmp(_env, 0);
     (_env->__jmpbuf)[JB_SP] = translate_address(sp);
     (_env->__jmpbuf)[JB_PC] = translate_address(pc);
     sigemptyset(&_env->__saved_mask);
@@ -79,9 +79,7 @@ Thread::Thread(const int id, int stack_size,void (*func)(void))
 
 //Destructor
 Thread::~Thread()
-{
-    free(_stack);
-}
+{}
 
 
 // ------------------ Access methods ------------------------
@@ -104,9 +102,4 @@ void Thread::setNumOfSyncedThreads(int tid)
 void Thread::addQuantum()
 {
     _number_of_quantumes++;
-}
-
-void  Thread::run_thread()
-{
-    _thread_func;
 }

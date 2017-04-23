@@ -13,6 +13,7 @@
 #include<string>
 #define FUNC_FAIL -1
 #define FUNC_SUCCESS 0
+#define MAIN_THREAD_ID 0
 
 std::string thread_termination_fail = "thread termination fail - invalid thread id";
 std::string thread_spawn_fail = "thread spawn fail - id exceeds thread limit";
@@ -101,9 +102,14 @@ void switchThreads(void)
     4. jump to the first thread in the ready queue
     5. set timer
      */
-    block_vclock();
+//    block_vclock();
+//    printf("the running element: ", )
     int ret_val = 0;
     Thread* cur_running_thread = current_running;
+
+    //////////////////////////////////FIRST STOP RUNNING THREADS
+
+
     // current_running is NULL when the current running thread is terminated
     if(cur_running_thread != NULL && cur_running_thread->getState() == RUNNING_STATE)
     {
@@ -111,7 +117,7 @@ void switchThreads(void)
         ret_val = sigsetjmp(cur_running_thread->_env,1);
         if (ret_val != 0)
         {
-            unblock_vclock();
+//            unblock_vclock();
             return;
         }
         ready_queue.push(cur_running_thread);
@@ -125,13 +131,16 @@ void switchThreads(void)
             }
         }
     }
+//    ready_queue.front()->addQuantum();
+
+
     if(cur_running_thread != NULL && cur_running_thread->getState() == BLOCKED_STATE)
     {
         ret_val = sigsetjmp(cur_running_thread->_env,1);
 
         if (ret_val != 0)
         {
-            unblock_vclock();
+//            unblock_vclock();
             return;
         }
     }
@@ -142,15 +151,25 @@ void switchThreads(void)
     {
         ready_queue.pop();
     }
+
+
+//////////////////////////////////SECOND RUN NEXT THREAD
+
+
     current_running = ready_queue.front();
-    current_running->setState(RUNNING_STATE);
-    if (current_running != 0)
+    while (ready_queue.front() == NULL)
     {
-        current_running->run_thread();
+        ready_queue.pop();
+        current_running = ready_queue.front();
     }
+    current_running->setState(RUNNING_STATE);
     current_running->addQuantum();
     ready_queue.pop();
-    unblock_vclock();
+//    unblock_vclock();
+//    if (setitimer (ITIMER_VIRTUAL, &timer, NULL))
+//    {
+//        printf("setitimer error.");
+//    }
     siglongjmp(current_running->_env, 1);
 
 }
@@ -158,15 +177,22 @@ void switchThreads(void)
 
 void timer_handler(int sig)
 {
-    //switch thread
+
+    block_vclock();
+    printf("running: %d\n",current_running->getId());
+    printf("Timer expired\n");
+    // switch threads
     switchThreads();
+//    printf("after switch\n");
+    unblock_vclock();
+
     // set timer - will restart the quantes timer
     if (setitimer (ITIMER_VIRTUAL, &timer, NULL))
     {
         printf("setitimer error.");
     }
 
-//    printf("Timer expired\n");
+
 }
 
 
@@ -209,12 +235,13 @@ int uthread_init(int quantum_usecs)
 {
     if(quantum_usecs <= 0)
     {
+        // TODO - add an error message
         return FUNC_FAIL;
     }
-    thread_vec[0] = new Thread();
+    thread_vec[MAIN_THREAD_ID] = new Thread();
     thread_counter++;
-    current_running = thread_vec[0];
-    thread_vec[0]->setState(RUNNING_STATE);
+    current_running = thread_vec[MAIN_THREAD_ID];
+    thread_vec[MAIN_THREAD_ID]->setState(RUNNING_STATE);
     current_running->addQuantum();
     start_timer(quantum_usecs);
     return FUNC_SUCCESS;
@@ -279,6 +306,7 @@ int uthread_spawn(void (start_point_func)(void)) {
 int uthread_terminate(int tid)
 {
     block_vclock();
+    printf("id %d is terminating\n",tid);
     // thread id invalid
     if(tid >= MAX_THREAD_NUM || thread_vec[tid] == NULL)
     {
@@ -289,6 +317,7 @@ int uthread_terminate(int tid)
     // thread self termination
     if (current_running->getId() == tid)
     {
+
         int num_of_synced_threads = current_running->getNumOfSyncedThreads();
         if(num_of_synced_threads > 0)
         {
@@ -308,16 +337,36 @@ int uthread_terminate(int tid)
             }
             thread_counter = 1;
         }
+
+        unblock_vclock();
         delete thread_vec[tid];
         thread_vec[tid] = NULL;
+
         timer_handler(1);
+
+        block_vclock();
         if(thread_counter == 1)
         {
             unblock_vclock();
             //TODO FIX EXIT
             exit(0);
         }
+        current_running = NULL;
     }
+    else
+    {
+        if(tid == 0)
+        {
+            // TODO different error message
+            thread_library_function_fail(thread_termination_fail);
+            unblock_vclock();
+            return FUNC_FAIL;
+
+        }
+        delete thread_vec[tid];
+        thread_vec[tid] = NULL;
+    }
+
     thread_counter--;
     unblock_vclock();
     return  FUNC_SUCCESS;
@@ -354,6 +403,7 @@ int uthread_block(int tid)
     //self thread block
     if(tid == current_running->getId())
     {
+        unblock_vclock();
         timer_handler(1);
         block_vclock();//TODO check block/unblock
     }
@@ -419,6 +469,7 @@ int uthread_sync(int tid)
     }
     current_running->setState(BLOCKED_STATE);
     thread_vec[tid]->setNumOfSyncedThreads(current_running->getId());
+    unblock_vclock();
     timer_handler(1);
     block_vclock();//TODO check block/unblock
     unblock_vclock();
@@ -434,7 +485,10 @@ int uthread_sync(int tid)
 */
 int uthread_get_tid()
 {
-    return current_running->getId();
+    block_vclock();
+    int res = current_running->getId();
+    unblock_vclock();
+    return res;
 }
 
 
@@ -473,7 +527,10 @@ int uthread_get_total_quantums()
 */
 int uthread_get_quantums(int tid)
 {
-    return thread_vec[tid]->getQuantum();
+    block_vclock();
+    int res = thread_vec[tid]->getQuantum();
+    unblock_vclock();
+    return res;
 }
 
 //int main() {
