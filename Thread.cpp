@@ -13,10 +13,6 @@
 #define SECOND 1000000
 #define STACK_SIZE 4096
 
-//char stack[STACK_SIZE];
-
-
-
 
 /* code for 64 bit Intel arch */
 

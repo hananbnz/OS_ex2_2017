@@ -281,6 +281,22 @@ int uthread_spawn(void (start_point_func)(void)) {
     return FUNC_FAIL;
 }
 
+void main_thread_termination()
+{
+    //free all other threads
+    for(int i = 1;i<MAX_THREAD_NUM; i++)
+    {
+        if(thread_vec[i] != NULL)
+        {
+            total_number_of_quantes += thread_vec[i]->getQuantum();
+            delete thread_vec[i];
+            thread_vec[i] = NULL;
+        }
+    }
+    total_number_of_quantes += thread_vec[MAIN_THREAD_ID]->getQuantum();
+    delete thread_vec[MAIN_THREAD_ID];
+    exit(0);
+}
 
 /*
  * Description: This function terminates the thread with ID tid and deletes
@@ -296,18 +312,21 @@ int uthread_spawn(void (start_point_func)(void)) {
 int uthread_terminate(int tid)
 {
     block_vclock();
-    printf("id %d is terminating\n",tid);
-    // thread id invalid
+//    printf("id %d is terminating\n",tid);
+
+    // First check for thread id invalid or not exist
     if(tid >= MAX_THREAD_NUM || thread_vec[tid] == NULL)
     {
         thread_library_function_fail(thread_termination_fail);
         unblock_vclock();
         return FUNC_FAIL;
     }
-    // thread self termination
-    if (current_running->getId() == tid)
-    {
 
+    // Second terminate thread
+    if (current_running->getId() == tid)
+    {   //thread self termination
+
+        //deals with synced thread
         int num_of_synced_threads = current_running->getNumOfSyncedThreads();
         if(num_of_synced_threads > 0)
         {
@@ -317,57 +336,37 @@ int uthread_terminate(int tid)
                 ready_queue.push(thread_vec[i]);
             }
         }
+
         //thread 0 termination
         if(tid == 0)
         {
-            for(int i = 1;i<MAX_THREAD_NUM; i++)
-            {
-                if(thread_vec[i] != NULL)
-                {
-                    total_number_of_quantes += thread_vec[i]->getQuantum();
-                    delete thread_vec[i];
-                    thread_vec[i] = NULL;
-                }
-            }
-            thread_counter = 1;
-        }
-
-        unblock_vclock();
-//        total_number_of_quantes += thread_vec[tid]->getQuantum();
-        delete thread_vec[tid];
-        thread_vec[tid] = NULL;
-        current_running = NULL;
-        timer_handler(1);
-
-        block_vclock();
-        if(thread_counter == 1)
-        {
-            unblock_vclock();
-            total_number_of_quantes += thread_vec[tid]->getQuantum();
-            //TODO FIX EXIT
-            exit(0);
+            main_thread_termination();
         }
         else
         {
             total_number_of_quantes += thread_vec[tid]->getQuantum();
+            delete thread_vec[tid];
+            thread_vec[tid] = NULL;
+            current_running = NULL;
+            unblock_vclock();
+            timer_handler(1);
+            block_vclock();
         }
-
     }
     else
-    {
+    { // thread terminating other thread
         if(tid == 0)
         {
-            // TODO different error message
-            thread_library_function_fail(thread_termination_fail);
-            unblock_vclock();
-            return FUNC_FAIL;
+            main_thread_termination();
+        }
+        else
+        {
+            total_number_of_quantes += thread_vec[tid]->getQuantum();
+            delete thread_vec[tid];
+            thread_vec[tid] = NULL;
 
         }
-        total_number_of_quantes += thread_vec[tid]->getQuantum();
-        delete thread_vec[tid];
-        thread_vec[tid] = NULL;
     }
-
     thread_counter--;
     unblock_vclock();
     return  FUNC_SUCCESS;
