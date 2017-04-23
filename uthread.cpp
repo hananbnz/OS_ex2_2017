@@ -151,11 +151,18 @@ void switchThreads(void)
     current_running = ready_queue.front();
 
     // pop out deleted threads
-    while (ready_queue.front() == NULL)
+    int curThreadNum = ready_queue.front()->getId();
+
+    while (thread_vec[curThreadNum] == NULL)
     {
         ready_queue.pop();
-        current_running = ready_queue.front();
+        int curThreadNum = ready_queue.front()->getId();
     }
+//    while (ready_queue.front() == NULL)
+//    {
+//        ready_queue.pop();
+//        current_running = ready_queue.front();
+//    }
 
     current_running->setState(RUNNING_STATE);
     current_running->addQuantum();
@@ -168,7 +175,7 @@ void switchThreads(void)
 void timer_handler(int sig)
 {
     block_vclock();
-    printf("Timer expired\n");
+//    printf("Timer expired\n");
     // switch threads
     switchThreads();
     unblock_vclock();
@@ -393,6 +400,20 @@ int uthread_block(int tid)
         unblock_vclock();
         return FUNC_FAIL;
     }
+    if(thread_vec[tid]->getState() == READY_STATE)
+    {
+        unsigned long ready_q_size = ready_queue.size();
+        for(int i=0; i < (int)ready_q_size; i++)
+        {
+            Thread* cur_thread = ready_queue.front();
+            ready_queue.pop();
+            if(cur_thread == thread_vec[tid])
+            {
+                break;
+            }
+            ready_queue.push(cur_thread);
+        }
+    }
     thread_vec[tid]->setState(BLOCKED_STATE);
     //self thread block
     if(tid == current_running->getId())
@@ -425,6 +446,17 @@ int uthread_resume(int tid)
     }
     if(thread_vec[tid]->getState() == BLOCKED_STATE)
     {
+//        unsigned long ready_q_size = ready_queue.size();
+//        for(int i=0; i < (int)ready_q_size; i++)
+//        {
+//            Thread* cur_thread = ready_queue.front();
+//            ready_queue.pop();
+//            if(cur_thread == thread_vec[tid])
+//            {
+//                break;
+//            }
+//            ready_queue.push(cur_thread);
+//        }
         thread_vec[tid]->setState(READY_STATE);
         ready_queue.push(thread_vec[tid]);
     }
