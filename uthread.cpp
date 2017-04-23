@@ -65,6 +65,8 @@ int gotit = 0;
 
 int total_number_of_quantes = 0;
 
+int total_deleted_threads_quanta = 0;
+
 
 sigset_t blocked_set;
 
@@ -288,12 +290,12 @@ void main_thread_termination()
     {
         if(thread_vec[i] != NULL)
         {
-            total_number_of_quantes += thread_vec[i]->getQuantum();
+            total_deleted_threads_quanta += thread_vec[i]->getQuantum();
             delete thread_vec[i];
             thread_vec[i] = NULL;
         }
     }
-    total_number_of_quantes += thread_vec[MAIN_THREAD_ID]->getQuantum();
+    total_deleted_threads_quanta += thread_vec[MAIN_THREAD_ID]->getQuantum();
     delete thread_vec[MAIN_THREAD_ID];
     exit(0);
 }
@@ -344,7 +346,7 @@ int uthread_terminate(int tid)
         }
         else
         {
-            total_number_of_quantes += thread_vec[tid]->getQuantum();
+            total_deleted_threads_quanta += thread_vec[tid]->getQuantum();
             delete thread_vec[tid];
             thread_vec[tid] = NULL;
             current_running = NULL;
@@ -361,7 +363,7 @@ int uthread_terminate(int tid)
         }
         else
         {
-            total_number_of_quantes += thread_vec[tid]->getQuantum();
+            total_deleted_threads_quanta += thread_vec[tid]->getQuantum();
             delete thread_vec[tid];
             thread_vec[tid] = NULL;
 
@@ -502,6 +504,7 @@ int uthread_get_tid()
 */
 int uthread_get_total_quantums()
 {
+    total_number_of_quantes = 0;
     for(int i = 0;i < MAX_THREAD_NUM; i++)
     {
         if(thread_vec[i] != NULL)
@@ -509,7 +512,7 @@ int uthread_get_total_quantums()
             total_number_of_quantes += thread_vec[i]->getQuantum();
         }
     }
-    return total_number_of_quantes;
+    return total_number_of_quantes + total_deleted_threads_quanta;
 }
 
 
