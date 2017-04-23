@@ -2,20 +2,20 @@ CC = g++
 CFLAGS = -Wall
 STD = -std=c++11
 FLAG = -c
-FILES = osm.cpp
-FILES2 = simpletest.cpp
-CLEAN = libosm.a osm.o simpletest.o ex1.tar
+FILES = uthread.cpp uthreads.h Thread.cpp Thread.h
+FILES2 = Thread.cpp
+CLEAN = uthread.a uthread.o Thread.o ex2.tar
 TARSRCS = osm.cpp Makefile README
 
 #make
 
-all: libosm.a 
+all: libuthread.a 
 
 #object files
-osm.o: osm.cpp osm.h
+uthread.o: uthread.cpp uthreads.h Thread.cpp Thread.h
 	$(CC) $(CFLAGS) $(STD) $(FLAG) $(FILES)
 
-simpletest.o: simpletest.cpp osm.h
+Thread.o: Thread.cpp Thread.h
 	$(CC) $(CFLAGS) $(STD) $(FLAG) $(FILES2)
 
 #Exectubles:
@@ -25,11 +25,11 @@ simpletest: simpletest.o osm.o
 
 #Library
 
-libosm.a: osm.o
-	ar rcs libosm.a osm.o
+libuthread.a: uthread.o
+	ar rcs libuthread.a uthread.o
 
-tar: libosm.a
-	tar -cvf ex1.tar $(TARSRCS)
+tar: libuthread.a
+	tar -cvf ex2.tar $(TARSRCS)
 
 val: 
 	-valgrind --leak-check=full --show-possibly-lost=yes --show-reachable=yes \
