@@ -76,7 +76,7 @@ void thread4()
 int main()
 {
     printf(GRN "Test 14:   " RESET);
-    fflush(stdout);
+//    fflush(stdout);
 
     uthread_init(50);
 

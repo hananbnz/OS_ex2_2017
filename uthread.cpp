@@ -72,7 +72,7 @@ int total_deleted_threads_quanta = 0;
 
 sigset_t blocked_set;
 
-int ret_val = 0;
+//int ret_val = 0;
 
 // ------------------------------ Library functions ----------------------------
 
@@ -110,6 +110,7 @@ void block_switch(int ret_val)
 
 void release_sync_dependency(int tid)
 {
+//    remove_thread_from_ready(tid);
     int num_of_synced_threads = thread_vec[tid]->getNumOfSyncedThreads();
     if(num_of_synced_threads > 0)
     {
@@ -122,6 +123,8 @@ void release_sync_dependency(int tid)
             }
             thread_vec[synced_id]->setState(READY_STATE);
             thread_vec[synced_id]->setUnsynced();
+//            printf("push 1\n");
+//            printf("size of ready %d\n",(int)ready_queue.size());
             ready_queue.push(thread_vec[synced_id]);
         }
     }
@@ -135,6 +138,8 @@ void quantum_expired_switch(int ret_val)
     {
         return;
     }
+//    printf("push 2\n");
+//    printf("size of ready %d\n",(int)ready_queue.size());
     ready_queue.push(current_running);
 }
 
@@ -147,7 +152,7 @@ void switchThreads(void)
     4. jump to the first thread in the ready queue
     5. set timer
      */
-//    int ret_val = 0;
+    int ret_val = 0;
     Thread* cur_running_thread = current_running;
     // Deals with current running thread quantum expired
     if(cur_running_thread != NULL && cur_running_thread->getState() == RUNNING_STATE)
@@ -158,7 +163,10 @@ void switchThreads(void)
         {
             return;
         }
+        printf("push 3\n");
+//        printf("size of ready %d\n",(int)ready_queue.size());
         ready_queue.push(current_running);
+        printf("get id 7 \n");
         release_sync_dependency(current_running->getId());
 
     }
@@ -170,6 +178,7 @@ void switchThreads(void)
         {
             return;
         }
+        printf("get id 8 \n");
         release_sync_dependency(current_running->getId());
     }
     // pop out blocked threads
@@ -287,6 +296,8 @@ int uthread_spawn(void (start_point_func)(void)) {
         //get minimum thread id
         int min = get_minimum_id();
         thread_vec[min] = new Thread(min, STACK_SIZE, start_point_func);
+//        printf("push 4\n");
+//        printf("size of ready %d\n",(int)ready_queue.size());
         ready_queue.push(thread_vec[min]);
         thread_counter++;
         unblock_vclock();
@@ -320,10 +331,14 @@ void remove_thread_from_ready(int tid)
     for(int i = 0;i < ready_q_size; i++)
     {
         Thread *current_thread = ready_queue.front();
+        ready_queue.pop();
+        printf("get id 1 \n");
         if (current_thread->getId() == tid)
         {
             break;
         }
+//        printf("push 5\n");
+//        printf("size of ready %d\n",(int)ready_queue.size());
         ready_queue.push(current_thread);
     }
 }
@@ -385,6 +400,7 @@ int uthread_terminate(int tid)
         return FUNC_FAIL;
     }
     // Second terminate thread
+    printf("get id 2 \n");
     if (current_running->getId() == tid)
     { //thread self termination
         handle_self_thread_termination(tid);
@@ -425,6 +441,7 @@ int uthread_block(int tid)
         return FUNC_FAIL;
     }
     thread_vec[tid]->setState(BLOCKED_STATE);
+    printf("get id 3 \n");
     if(tid == current_running->getId())
     {//self thread block
         scheduling_decision();
@@ -459,6 +476,8 @@ int uthread_resume(int tid)
     if(thread_vec[tid]->getState() == BLOCKED_STATE && !(thread_vec[tid]->is_synced()))
     {
         thread_vec[tid]->setState(READY_STATE);
+//        printf("push 6\n");
+//        printf("size of ready %d\n",(int)ready_queue.size());
         ready_queue.push(thread_vec[tid]);
     }
     unblock_vclock();
@@ -488,6 +507,7 @@ int uthread_sync(int tid)
         unblock_vclock();
         return FUNC_FAIL;
     }
+    printf("get id 4 \n");
     if(current_running->getId() == 0)
     {
         thread_library_function_fail(thread_sync_fail_2);
@@ -496,6 +516,7 @@ int uthread_sync(int tid)
     }
     //sync thread
     current_running->setState(BLOCKED_STATE);
+    printf("get id 5 \n");
     thread_vec[tid]->addToSyncedThreads(current_running->getId());
     current_running->setSynced();
     scheduling_decision();
@@ -511,6 +532,7 @@ int uthread_sync(int tid)
 int uthread_get_tid()
 {
     block_vclock();
+    printf("get id 6 \n");
     int res = current_running->getId();
     unblock_vclock();
     return res;
