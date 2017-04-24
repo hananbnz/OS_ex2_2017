@@ -72,6 +72,7 @@ int total_deleted_threads_quanta = 0;
 
 sigset_t blocked_set;
 
+int ret_val = 0;
 
 // ------------------------------ Library functions ----------------------------
 
@@ -146,19 +147,29 @@ void switchThreads(void)
     4. jump to the first thread in the ready queue
     5. set timer
      */
-    int ret_val = 0;
+//    int ret_val = 0;
     Thread* cur_running_thread = current_running;
     // Deals with current running thread quantum expired
     if(cur_running_thread != NULL && cur_running_thread->getState() == RUNNING_STATE)
     {
-        quantum_expired_switch(ret_val);
+        current_running->setState(READY_STATE);
+        ret_val = sigsetjmp(current_running->_env,1);
+        if (ret_val != 0)
+        {
+            return;
+        }
+        ready_queue.push(current_running);
         release_sync_dependency(current_running->getId());
 
     }
     // Deals with current running thread being blocked
     if(cur_running_thread != NULL && cur_running_thread->getState() == BLOCKED_STATE)
     {
-        block_switch(ret_val);
+        ret_val = sigsetjmp(current_running->_env,1);
+        if (ret_val != 0)
+        {
+            return;
+        }
         release_sync_dependency(current_running->getId());
     }
     // pop out blocked threads
