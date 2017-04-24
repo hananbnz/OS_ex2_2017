@@ -49,7 +49,7 @@ Thread::Thread()
     _thread_func = NULL;
     _number_of_quantumes = 0;
 
-    sp = (address_t)_stack + DEFAULT_STACK_SIZE - sizeof(address_t);
+    sp = (address_t)_stack + STACK_SIZE - sizeof(address_t);
     pc = (address_t)_thread_func;
     sigsetjmp(_env, 1);
     (_env->__jmpbuf)[JB_SP] = translate_address(sp);
@@ -65,7 +65,7 @@ Thread::Thread(const int id, int stack_size,void (*func)(void))
     _state = READY_STATE;
     _number_of_quantumes = 0;
 
-    sp = (address_t)_stack + stack_size - sizeof(address_t);
+    sp = (address_t)_stack + STACK_SIZE - sizeof(address_t);
     pc = (address_t)_thread_func;
     sigsetjmp(_env, 0);
     (_env->__jmpbuf)[JB_SP] = translate_address(sp);

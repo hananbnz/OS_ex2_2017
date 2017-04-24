@@ -65,9 +65,6 @@ struct sigaction sa;
  */
 struct itimerval timer;
 
-
-int gotit = 0;
-
 int total_number_of_quantes = 0;
 
 int total_deleted_threads_quanta = 0;
@@ -101,7 +98,6 @@ void unblock_vclock()
     sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
 }
 
-
 void block_switch(int ret_val)
 {
     ret_val = sigsetjmp(current_running->_env,1);
@@ -129,7 +125,6 @@ void release_sync_dependency(int tid)
         }
     }
 }
-
 
 void quantum_expired_switch(int ret_val)
 {
@@ -180,11 +175,9 @@ void switchThreads(void)
     siglongjmp(current_running->_env, 1);
 }
 
-
 void timer_handler(int sig)
 {
     block_vclock();
-    printf("Timer expired\n");
     // switch threads
     switchThreads();
     unblock_vclock();
@@ -195,6 +188,12 @@ void timer_handler(int sig)
     }
 }
 
+void scheduling_decision()
+{
+    unblock_vclock();
+    timer_handler(1);
+    block_vclock();
+}
 
 int start_timer(int usecs)
 {
@@ -219,7 +218,6 @@ int start_timer(int usecs)
     }
     return FUNC_SUCCESS;
 }
-
 
 /*
  * Description: This function initializes the thread library.
@@ -259,7 +257,6 @@ int get_minimum_id()
     }
     return thread_counter;
 }
-
 
 /*
  * Description: This function creates a new thread, whose entry point is the
@@ -349,9 +346,7 @@ void handle_self_thread_termination(int tid)
         delete thread_vec[tid];
         thread_vec[tid] = NULL;
         current_running = NULL;
-        unblock_vclock();
-        timer_handler(1);
-        block_vclock();
+        scheduling_decision();
     }
 }
 
@@ -392,7 +387,6 @@ int uthread_terminate(int tid)
     return  FUNC_SUCCESS;
 }
 
-
 /*
  * Description: This function blocks the thread with ID tid. The thread may
  * be resumed later using uthread_resume. If no thread with ID tid exists it
@@ -422,9 +416,7 @@ int uthread_block(int tid)
     thread_vec[tid]->setState(BLOCKED_STATE);
     if(tid == current_running->getId())
     {//self thread block
-        unblock_vclock();
-        timer_handler(1);
-        block_vclock();
+        scheduling_decision();
     }
     else
     {//other thread block
@@ -491,18 +483,15 @@ int uthread_sync(int tid)
         unblock_vclock();
         return FUNC_FAIL;
     }
-
+    //sync thread
     current_running->setState(BLOCKED_STATE);
     thread_vec[tid]->addToSyncedThreads(current_running->getId());
-    unblock_vclock();
-    timer_handler(1);
-    block_vclock();//TODO check block/unblock
+    current_running->setSynced();
+    scheduling_decision();
     unblock_vclock();
     return FUNC_SUCCESS;
-
 }
 
-///////////////////////////////////////////////////////////////////////////////
 
 /*
  * Description: This function returns the thread ID of the calling thread.
@@ -555,10 +544,3 @@ int uthread_get_quantums(int tid)
     unblock_vclock();
     return res;
 }
-
-//int main() {
-//    printf("start timer");
-//    start_timer(1000);
-//
-//    return 0;
-//}
