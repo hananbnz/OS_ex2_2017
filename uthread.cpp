@@ -114,6 +114,7 @@ void switchThreads(void)
     // current_running is NULL when the current running thread is terminated
     if(cur_running_thread != NULL && cur_running_thread->getState() == RUNNING_STATE)
     {
+//        printf("set 1\n");
         cur_running_thread->setState(READY_STATE);
         ret_val = sigsetjmp(cur_running_thread->_env,1);
         if (ret_val != 0)
@@ -126,7 +127,17 @@ void switchThreads(void)
         {
             for (int i = 0; i < num_of_synced_threads; ++i)
             {
+//                printf("set 2\n");
+                //TODO I made a fix if a synced thread was terminated so wint
+                // add to ready
+                if (thread_vec[i] == NULL)
+                {
+                    continue;
+                }
+//                printf("thread vec id: %d\n", thread_vec[i]);
                 thread_vec[i]->setState(READY_STATE);
+
+
                 ready_queue.push(thread_vec[i]);
             }
         }
@@ -163,7 +174,7 @@ void switchThreads(void)
 //        ready_queue.pop();
 //        current_running = ready_queue.front();
 //    }
-
+//    printf("set 3\n");
     current_running->setState(RUNNING_STATE);
     current_running->addQuantum();
     ready_queue.pop();
@@ -232,6 +243,7 @@ int uthread_init(int quantum_usecs)
     thread_vec[MAIN_THREAD_ID] = new Thread();
     thread_counter++;
     current_running = thread_vec[MAIN_THREAD_ID];
+//    printf("set 4\n");
     thread_vec[MAIN_THREAD_ID]->setState(RUNNING_STATE);
     current_running->addQuantum();
     start_timer(quantum_usecs);
@@ -333,6 +345,11 @@ int uthread_terminate(int tid)
         {
             for (int i = 0; i < num_of_synced_threads; ++i)
             {
+                if (thread_vec[i] == NULL)
+                {
+                    continue;
+                }
+//                printf("set 5\n");
                 thread_vec[i]->setState(READY_STATE);
                 ready_queue.push(thread_vec[i]);
             }
@@ -414,6 +431,7 @@ int uthread_block(int tid)
             ready_queue.push(cur_thread);
         }
     }
+//    printf("set 6\n");
     thread_vec[tid]->setState(BLOCKED_STATE);
     //self thread block
     if(tid == current_running->getId())
@@ -446,17 +464,18 @@ int uthread_resume(int tid)
     }
     if(thread_vec[tid]->getState() == BLOCKED_STATE)
     {
-//        unsigned long ready_q_size = ready_queue.size();
-//        for(int i=0; i < (int)ready_q_size; i++)
-//        {
-//            Thread* cur_thread = ready_queue.front();
-//            ready_queue.pop();
-//            if(cur_thread == thread_vec[tid])
-//            {
-//                break;
-//            }
-//            ready_queue.push(cur_thread);
-//        }
+        unsigned long ready_q_size = ready_queue.size();
+        for(int i=0; i < (int)ready_q_size; i++)
+        {
+            Thread* cur_thread = ready_queue.front();
+            ready_queue.pop();
+            if(cur_thread == thread_vec[tid])
+            {
+                break;
+            }
+            ready_queue.push(cur_thread);
+        }
+//        printf("set 7\n");
         thread_vec[tid]->setState(READY_STATE);
         ready_queue.push(thread_vec[tid]);
     }
@@ -493,6 +512,7 @@ int uthread_sync(int tid)
         unblock_vclock();
         return FUNC_FAIL;
     }
+//    printf("set 8\n");
     current_running->setState(BLOCKED_STATE);
     thread_vec[tid]->setNumOfSyncedThreads(current_running->getId());
     unblock_vclock();
