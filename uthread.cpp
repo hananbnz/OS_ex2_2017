@@ -15,17 +15,17 @@
 #define FUNC_SUCCESS 0
 #define MAIN_THREAD_ID 0
 
-std::string thread_termination_fail = "thread termination fail - invalid thread id";
-std::string thread_spawn_fail = "thread spawn fail - id exceeds thread limit";
-std::string thread_block_fail_1 = "thread block fail - thread with given id doesn't exist";
-std::string thread_block_fail_2 = "thread block fail - can't block main thread";
-std::string thread_sync_fail_1 = "thread sync fail - thread with given id doesn't exist";
-std::string thread_sync_fail_2 = "thread sync fail - main thread can't call sync func";
+string thread_termination_fail = "thread termination fail - invalid thread id";
+string thread_spawn_fail = "thread spawn fail - id exceeds thread limit";
+string thread_block_fail_1 = "thread block fail - thread with given id doesn't exist";
+string thread_block_fail_2 = "thread block fail - can't block main thread";
+string thread_sync_fail_1 = "thread sync fail - thread with given id doesn't exist";
+string thread_sync_fail_2 = "thread sync fail - main thread can't call sync func";
 
 /**
  * @brief  thread_vec vector that holds the threads created
  */
-std::vector<Thread*> thread_vec(MAX_THREAD_NUM, NULL);
+vector<Thread*> thread_vec(MAX_THREAD_NUM, NULL);
 
 /**
  * @brief  thread_counter an integer number represents the number of threads
@@ -37,13 +37,13 @@ int thread_counter  = 0;
  * @brief  ready_queue a queue that represents ready state threads
  * currently available
  */
-std::queue<Thread*> ready_queue;
+queue<Thread*> ready_queue;
 
 /**
  * @brief  blocked_queue a queue that represents blocked state threads
  * currently available
  */
-std::queue<Thread*> blocked_queue;
+queue<Thread*> blocked_queue;
 
 /**
  * @brief  current_running pointer to the running thread
@@ -74,12 +74,12 @@ sigset_t blocked_set;
 // ------------------------------ Library functions ----------------------------
 
 
-void thread_library_function_fail(std::string text)
+void thread_library_function_fail(string text)
 {
     fprintf(stderr, "thread library error: %s\n", text);
 }
 
-void system_call_fails(std::string text)
+void system_call_fails(string text)
 {
     fprintf(stderr, "system error: %s\n", text);
 }
