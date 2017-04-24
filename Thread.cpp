@@ -45,11 +45,11 @@ address_t sp, pc;
 Thread::Thread()
 {
     _id = DEFAULT_ID;
-//    _stack = (void*)malloc(DEFAULT_STACK_SIZE);
     _state = READY_STATE;
     _thread_func = NULL;
     _number_of_quantumes = 0;
-    sp = (address_t)_stack + STACK_SIZE - sizeof(address_t);
+
+    sp = (address_t)_stack + DEFAULT_STACK_SIZE - sizeof(address_t);
     pc = (address_t)_thread_func;
     sigsetjmp(_env, 1);
     (_env->__jmpbuf)[JB_SP] = translate_address(sp);
@@ -61,11 +61,11 @@ Thread::Thread()
 Thread::Thread(const int id, int stack_size,void (*func)(void))
 {
     _id = id;
-//    _stack = (void*)malloc(stack_size);
     _thread_func = func;
     _state = READY_STATE;
     _number_of_quantumes = 0;
-    sp = (address_t)_stack + STACK_SIZE - sizeof(address_t);
+
+    sp = (address_t)_stack + stack_size - sizeof(address_t);
     pc = (address_t)_thread_func;
     sigsetjmp(_env, 0);
     (_env->__jmpbuf)[JB_SP] = translate_address(sp);
@@ -90,7 +90,7 @@ void Thread::setState(int state)
     _state = state;
 }
 
-void Thread::setNumOfSyncedThreads(int tid)
+void Thread::addToSyncedThreads(int tid)
 {
     _synced_threads.push_back(tid);
 }
@@ -98,4 +98,14 @@ void Thread::setNumOfSyncedThreads(int tid)
 void Thread::addQuantum()
 {
     _number_of_quantumes++;
+}
+
+void Thread::setSynced()
+{
+    _is_synced = true;
+}
+
+void Thread::setUnsynced()
+{
+    _is_synced = false;
 }

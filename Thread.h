@@ -55,6 +55,8 @@ public:
 
     int getNumOfSyncedThreads(){ return (int)_synced_threads.size();};
 
+    bool is_synced(){return _is_synced; };
+
     //  Setter Functions
 
     /**
@@ -72,20 +74,25 @@ public:
      *
      * @param tid
      */
-    void setNumOfSyncedThreads(int tid);
+    void addToSyncedThreads(int tid);
+
+    void setSynced();
+
+    void setUnsynced();
+
 
 
 private:
     int _id; /**< the id of this Thread object*/
     int _state; /**< the state of this Thread object**/
-//    void *_stack;
     char* _stack[DEFAULT_STACK_SIZE];
     void (*_thread_func)(void);
     int _number_of_quantumes;
-    std::vector<int> _synced_threads;
+    bool _is_synced = false;
 
 public:
     sigjmp_buf _env;
+    std::vector<int> _synced_threads;
 };
 
 
