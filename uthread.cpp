@@ -121,11 +121,15 @@ void release_sync_dependency(int tid)
             {
                 continue;
             }
-            thread_vec[synced_id]->setState(READY_STATE);
+
             thread_vec[synced_id]->setUnsynced();
 //            printf("push 1\n");
 //            printf("size of ready %d\n",(int)ready_queue.size());
-            ready_queue.push(thread_vec[synced_id]);
+            if(thread_vec[synced_id]->getState() == READY_STATE)
+            {
+//                thread_vec[synced_id]->setState(READY_STATE);
+                ready_queue.push(thread_vec[synced_id]);
+            }
         }
     }
 }
@@ -153,20 +157,22 @@ void switchThreads(void)
     5. set timer
      */
     int ret_val = 0;
+
     Thread* cur_running_thread = current_running;
     // Deals with current running thread quantum expired
     if(cur_running_thread != NULL && cur_running_thread->getState() == RUNNING_STATE)
     {
+//        printf("running id: %d \n", current_running->getQuantum());
         current_running->setState(READY_STATE);
         ret_val = sigsetjmp(current_running->_env,1);
         if (ret_val != 0)
         {
             return;
         }
-        printf("push 3\n");
+//        printf("push 3\n");
 //        printf("size of ready %d\n",(int)ready_queue.size());
         ready_queue.push(current_running);
-        printf("get id 7 \n");
+//        printf("get id 7 \n");
         release_sync_dependency(current_running->getId());
 
     }
@@ -178,9 +184,10 @@ void switchThreads(void)
         {
             return;
         }
-        printf("get id 8 \n");
+//        printf("get id 8 \n");
         release_sync_dependency(current_running->getId());
     }
+//    if(cur_running_thread != NULL && cur_running_thread->is_synced())
     // pop out blocked threads
 //    while(!ready_queue.empty() && ready_queue.front()->getState() ==
 //                                  BLOCKED_STATE)
@@ -188,12 +195,26 @@ void switchThreads(void)
 //        ready_queue.pop();
 //    }
     // Move the next thread to ready list
+    if(cur_running_thread != NULL && cur_running_thread->is_synced())
+    {
+        ret_val = sigsetjmp(current_running->_env,1);
+        if (ret_val != 0)
+        {
+            return;
+        }
+    }
     current_running = ready_queue.front();
+    while(current_running->is_synced())
+    {
+        ready_queue.pop();
+        current_running = ready_queue.front();
+    }
     current_running->setState(RUNNING_STATE);
     current_running->addQuantum();
     ready_queue.pop();
     siglongjmp(current_running->_env, 1);
 }
+
 
 void timer_handler(int sig)
 {
@@ -332,7 +353,7 @@ void remove_thread_from_ready(int tid)
     {
         Thread *current_thread = ready_queue.front();
         ready_queue.pop();
-        printf("get id 1 \n");
+//        printf("get id 1 \n");
         if (current_thread->getId() == tid)
         {
             break;
@@ -400,7 +421,7 @@ int uthread_terminate(int tid)
         return FUNC_FAIL;
     }
     // Second terminate thread
-    printf("get id 2 \n");
+//    printf("get id 2 \n");
     if (current_running->getId() == tid)
     { //thread self termination
         handle_self_thread_termination(tid);
@@ -441,7 +462,7 @@ int uthread_block(int tid)
         return FUNC_FAIL;
     }
     thread_vec[tid]->setState(BLOCKED_STATE);
-    printf("get id 3 \n");
+//    printf("get id 3 \n");
     if(tid == current_running->getId())
     {//self thread block
         scheduling_decision();
@@ -473,12 +494,15 @@ int uthread_resume(int tid)
         return FUNC_FAIL;
     }
     //check if can be resumed
-    if(thread_vec[tid]->getState() == BLOCKED_STATE && !(thread_vec[tid]->is_synced()))
+    if(thread_vec[tid]->getState() == BLOCKED_STATE)
     {
         thread_vec[tid]->setState(READY_STATE);
 //        printf("push 6\n");
 //        printf("size of ready %d\n",(int)ready_queue.size());
-        ready_queue.push(thread_vec[tid]);
+        if (!(thread_vec[tid]->is_synced()))
+        {
+            ready_queue.push(thread_vec[tid]);
+        }
     }
     unblock_vclock();
     return FUNC_SUCCESS;
@@ -507,7 +531,13 @@ int uthread_sync(int tid)
         unblock_vclock();
         return FUNC_FAIL;
     }
-    printf("get id 4 \n");
+    if(current_running->getId() == tid)
+    {
+        //TODO add error message
+        unblock_vclock();
+        return FUNC_FAIL;
+    }
+//    printf("get id 4 \n");
     if(current_running->getId() == 0)
     {
         thread_library_function_fail(thread_sync_fail_2);
@@ -515,10 +545,11 @@ int uthread_sync(int tid)
         return FUNC_FAIL;
     }
     //sync thread
-    current_running->setState(BLOCKED_STATE);
-    printf("get id 5 \n");
-    thread_vec[tid]->addToSyncedThreads(current_running->getId());
     current_running->setSynced();
+    current_running->setState(READY_STATE);
+//    printf("get id 5 \n");
+    thread_vec[tid]->addToSyncedThreads(current_running->getId());
+
     scheduling_decision();
     unblock_vclock();
     return FUNC_SUCCESS;
@@ -532,7 +563,7 @@ int uthread_sync(int tid)
 int uthread_get_tid()
 {
     block_vclock();
-    printf("get id 6 \n");
+//    printf("get id 6 \n");
     int res = current_running->getId();
     unblock_vclock();
     return res;
