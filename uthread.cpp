@@ -69,8 +69,9 @@ int total_number_of_quantes = 0;
 
 int total_deleted_threads_quanta = 0;
 
-
 sigset_t blocked_set;
+
+//sigset_t blocked_set;
 
 //int ret_val = 0;
 
@@ -524,7 +525,7 @@ int uthread_resume(int tid)
 */
 int uthread_sync(int tid)
 {
-    block_vclock();
+//    block_vclock();
     //invalid tid
     if(tid >= MAX_THREAD_NUM || thread_vec[tid] == NULL)
     {
@@ -552,7 +553,7 @@ int uthread_sync(int tid)
     thread_vec[tid]->addToSyncedThreads(current_running->getId());
 
     scheduling_decision();
-    unblock_vclock();
+//    unblock_vclock();
     return FUNC_SUCCESS;
 }
 
@@ -563,11 +564,11 @@ int uthread_sync(int tid)
 */
 int uthread_get_tid()
 {
-    block_vclock();
-//    printf("get id 6 \n");
-    int res = current_running->getId();
-    unblock_vclock();
-    return res;
+//    block_vclock();
+////    printf("get id 6 \n");
+//    int res = current_running->getId();
+//    unblock_vclock();
+    return current_running->getId();;
 }
 
 
