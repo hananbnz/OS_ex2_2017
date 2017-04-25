@@ -108,6 +108,7 @@ void block_switch(int ret_val)
 void release_sync_dependency(int tid)
 {
 //    remove_thread_from_ready(tid);
+//    Thread* cur_Thread = thread_vec[tid];
     int num_of_synced_threads = thread_vec[tid]->getNumOfSyncedThreads();
     if(num_of_synced_threads > 0)
     {
@@ -118,7 +119,6 @@ void release_sync_dependency(int tid)
             {
                 continue;
             }
-
             thread_vec[synced_id]->setUnsynced();
 //            printf("push 1\n");
 //            printf("size of ready %d\n",(int)ready_queue.size());
@@ -128,6 +128,7 @@ void release_sync_dependency(int tid)
                 ready_queue.push(thread_vec[synced_id]);
             }
         }
+        thread_vec[tid]->_synced_threads.clear();
     }
 }
 
@@ -161,6 +162,9 @@ void switchThreads(void)
     {
 //        printf("running id: %d \n", current_running->getQuantum());
         current_running->setState(READY_STATE);
+        ready_queue.push(current_running);
+//        printf("get id 9 \n");
+        release_sync_dependency(current_running->getId());
         ret_val = sigsetjmp(current_running->_env,1);
         if (ret_val != 0)
         {
@@ -169,22 +173,20 @@ void switchThreads(void)
         }
 //        printf("push 3\n");
 //        printf("size of ready %d\n",(int)ready_queue.size());
-        ready_queue.push(current_running);
-//        printf("get id 7 \n");
-        release_sync_dependency(current_running->getId());
+
 
     }
     // Deals with current running thread being blocked
     if(cur_running_thread != NULL && cur_running_thread->getState() == BLOCKED_STATE)
     {
+        release_sync_dependency(current_running->getId());
         ret_val = sigsetjmp(current_running->_env,1);
         if (ret_val != 0)
         {
             sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
             return;
         }
-//        printf("get id 8 \n");
-        release_sync_dependency(current_running->getId());
+//        printf("get id 10 \n");
     }
 //    if(cur_running_thread != NULL && cur_running_thread->is_synced())
     // pop out blocked threads
@@ -196,6 +198,7 @@ void switchThreads(void)
     // Move the next thread to ready list
     if(cur_running_thread != NULL && cur_running_thread->is_synced())
     {
+        release_sync_dependency(current_running->getId());
         ret_val = sigsetjmp(current_running->_env,1);
         if (ret_val != 0)
         {
@@ -549,13 +552,14 @@ int uthread_sync(int tid)
         sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
         return FUNC_FAIL;
     }
+//    printf("get id 4 \n");
     if(current_running->getId() == tid)
     {
         //TODO add error message
         sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
         return FUNC_FAIL;
     }
-//    printf("get id 4 \n");
+//    printf("get id 5 \n");
     if(current_running->getId() == 0)
     {
         thread_library_function_fail(thread_sync_fail_2);
@@ -565,7 +569,7 @@ int uthread_sync(int tid)
     //sync thread
     current_running->setSynced();
     current_running->setState(READY_STATE);
-//    printf("get id 5 \n");
+//    printf("get id 6 \n");
     thread_vec[tid]->addToSyncedThreads(current_running->getId());
 
 //    scheduling_decision();
@@ -585,11 +589,13 @@ int uthread_sync(int tid)
 */
 int uthread_get_tid()
 {
-//    sigprocmask(SIG_BLOCK, &blocked_set, NULL);
-////    printf("get id 6 \n");
-//    int res = current_running->getId();
-//    sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
-    return current_running->getId();;
+    sigprocmask(SIG_BLOCK, &blocked_set, NULL);
+//    printf("get id 7 \n");
+    int res = current_running->getId();
+    sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
+//    printf("get id 8\n");
+//    return current_running->getId();;
+    return res;
 }
 
 
