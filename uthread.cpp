@@ -17,8 +17,7 @@
 
 using namespace std;
 
-* thread_init_fail = "thread init fail - illegal quantum value should be "
-        "    positive";
+string thread_init_fail = "thread init fail - illegal quantum value should be positive";
 string thread_spawn_fail = "thread spawn fail - id exceeds thread limit";
 string thread_termination_fail = "thread termination fail - invalid thread id";
 string thread_block_fail_1 = "thread block fail - thread with given id doesn't exist";
