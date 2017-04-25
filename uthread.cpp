@@ -660,7 +660,7 @@ int uthread_get_total_quantums()
             total_number_of_quantes += thread_vec[i]->getQuantum();
         }
     }
-//    unblock_vclock();
+    unblock_vclock();
     return total_number_of_quantes + total_deleted_threads_quanta;
 }
 
