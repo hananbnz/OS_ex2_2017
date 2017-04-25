@@ -6,7 +6,7 @@
       <sourceFolder url="file://$MODULE_DIR$/uthread.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/uthreads.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/Thread.cpp" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/test429.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/test132.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/Thread.h" isTestSource="false" />
     </content>
     <orderEntry type="sourceFolder" forTests="false" />
