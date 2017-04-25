@@ -78,12 +78,12 @@ sigset_t blocked_set;
 
 void thread_library_function_fail(string text)
 {
-    fprintf(stderr, "thread library error: %s\n", text);
+    fprintf(stderr, "thread library error: %s\n", text.c_str());
 }
 
 void system_call_fails(string text)
 {
-    fprintf(stderr, "system error: %s\n", text);
+    fprintf(stderr, "system error: %s\n", text.c_str());
 }
 
 void block_vclock()

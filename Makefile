@@ -19,8 +19,8 @@ Thread.o: Thread.cpp Thread.h
 	$(CC) $(CFLAGS) $(STD) $(FLAG) $(FILES2)
 
 #Exectubles:
-simpletest: simpletest.o osm.o
-	$(CC) simpletest.o osm.o -o $@
+#compile_all: simpletest.o osm.o
+#	$(CC) simpletest.o osm.o -o $@
 
 
 #Library
@@ -33,7 +33,7 @@ tar: libuthread.a
 
 val: 
 	-valgrind --leak-check=full --show-possibly-lost=yes --show-reachable=yes \
-	 --undef-value-errors=yes ./simpletest
+	 --undef-value-errors=yes ./run_all
 
 clean:
 	-rm -f $(CLEAN)
