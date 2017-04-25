@@ -71,8 +71,6 @@ int total_deleted_threads_quanta = 0;
 
 sigset_t blocked_set;
 
-//sigset_t blocked_set;
-
 //int ret_val = 0;
 
 // ------------------------------ Library functions ----------------------------
@@ -90,9 +88,7 @@ void system_call_fails(string text)
 
 void block_vclock()
 {
-    sigemptyset(&blocked_set);
-    sigaddset(&blocked_set, SIGVTALRM);
-    sigprocmask(SIG_SETMASK, &blocked_set, NULL);
+    sigprocmask(SIG_BLOCK, &blocked_set, NULL);
 }
 
 void unblock_vclock()
@@ -158,7 +154,7 @@ void switchThreads(void)
     5. set timer
      */
     int ret_val = 0;
-
+    sigprocmask(SIG_BLOCK, &blocked_set, NULL);
     Thread* cur_running_thread = current_running;
     // Deals with current running thread quantum expired
     if(cur_running_thread != NULL && cur_running_thread->getState() == RUNNING_STATE)
@@ -168,6 +164,7 @@ void switchThreads(void)
         ret_val = sigsetjmp(current_running->_env,1);
         if (ret_val != 0)
         {
+            sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
             return;
         }
 //        printf("push 3\n");
@@ -183,6 +180,7 @@ void switchThreads(void)
         ret_val = sigsetjmp(current_running->_env,1);
         if (ret_val != 0)
         {
+            sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
             return;
         }
 //        printf("get id 8 \n");
@@ -201,6 +199,7 @@ void switchThreads(void)
         ret_val = sigsetjmp(current_running->_env,1);
         if (ret_val != 0)
         {
+            sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
             return;
         }
     }
@@ -213,6 +212,7 @@ void switchThreads(void)
     current_running->setState(RUNNING_STATE);
     current_running->addQuantum();
     ready_queue.pop();
+    sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
     siglongjmp(current_running->_env, 1);
 }
 
@@ -220,10 +220,13 @@ void switchThreads(void)
 
 void timer_handler(int sig)
 {
-    block_vclock();
+//    printf("start timer\n");
+    sigprocmask(SIG_BLOCK, &blocked_set, NULL);
+//    printf("blocked!!\n");
     // switch threads
     switchThreads();
-    unblock_vclock();
+//    printf("end timer\n");
+    sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
     // set timer - will restart the quantes timer
     if (setitimer (ITIMER_VIRTUAL, &timer, NULL))
     {
@@ -231,12 +234,12 @@ void timer_handler(int sig)
     }
 }
 
-void scheduling_decision()
-{
-    unblock_vclock();
-    timer_handler(1);
-    block_vclock();
-}
+//void scheduling_decision()
+//{
+//    sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
+//    timer_handler(1);
+//    sigprocmask(SIG_BLOCK, &blocked_set, NULL);
+//}
 
 int start_timer(int usecs)
 {
@@ -259,6 +262,12 @@ int start_timer(int usecs)
     {
         printf("setitimer error.");
     }
+    // TODO changed
+    sigemptyset(&blocked_set);
+    sigaddset(&blocked_set, SIGVTALRM);
+//    sigprocmask(SIG_SETMASK, &blocked_set, NULL);
+    // TODO till here
+//    sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
     return FUNC_SUCCESS;
 }
 
@@ -312,7 +321,7 @@ int get_minimum_id()
  * On failure, return -1.
 */
 int uthread_spawn(void (start_point_func)(void)) {
-    block_vclock();
+    sigprocmask(SIG_BLOCK, &blocked_set, NULL);
     //check if adding thread exceeds thread limit
     if (thread_counter < MAX_THREAD_NUM)
     {
@@ -323,10 +332,10 @@ int uthread_spawn(void (start_point_func)(void)) {
 //        printf("size of ready %d\n",(int)ready_queue.size());
         ready_queue.push(thread_vec[min]);
         thread_counter++;
-        unblock_vclock();
+        sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
         return min;
     }
-    unblock_vclock();
+    sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
     thread_library_function_fail(thread_spawn_fail);
     return FUNC_FAIL;
 }
@@ -395,7 +404,10 @@ void handle_self_thread_termination(int tid)
         delete thread_vec[tid];
         thread_vec[tid] = NULL;
         current_running = NULL;
-        scheduling_decision();
+//        scheduling_decision();
+        sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
+        timer_handler(1);
+        sigprocmask(SIG_BLOCK, &blocked_set, NULL);
     }
 }
 
@@ -413,13 +425,13 @@ void handle_self_thread_termination(int tid)
 */
 int uthread_terminate(int tid)
 {
-    block_vclock();
+    sigprocmask(SIG_BLOCK, &blocked_set, NULL);
 
     // First check for thread id invalid or not exist
     if(tid >= MAX_THREAD_NUM || thread_vec[tid] == NULL)
     {
         thread_library_function_fail(thread_termination_fail);
-        unblock_vclock();
+        sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
         return FUNC_FAIL;
     }
     // Second terminate thread
@@ -433,7 +445,7 @@ int uthread_terminate(int tid)
         handle_other_thread_termination(tid);
     }
     thread_counter--;
-    unblock_vclock();
+    sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
     return  FUNC_SUCCESS;
 }
 
@@ -448,32 +460,35 @@ int uthread_terminate(int tid)
 */
 int uthread_block(int tid)
 {
-    block_vclock();
+    sigprocmask(SIG_BLOCK, &blocked_set, NULL);
     //invalid tid
     if(tid >= MAX_THREAD_NUM || thread_vec[tid] == NULL)
     {
         thread_library_function_fail(thread_block_fail_1);
-        unblock_vclock();
+        sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
         return FUNC_FAIL;
     }
     //tid = 0 - block main thread
     if(tid == 0)
     {
         thread_library_function_fail(thread_block_fail_2);
-        unblock_vclock();
+        sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
         return FUNC_FAIL;
     }
     thread_vec[tid]->setState(BLOCKED_STATE);
 //    printf("get id 3 \n");
     if(tid == current_running->getId())
     {//self thread block
-        scheduling_decision();
+//        scheduling_decision();
+        sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
+        timer_handler(1);
+        sigprocmask(SIG_BLOCK, &blocked_set, NULL);
     }
     else
     {//other thread block
         remove_thread_from_ready(tid);
     }
-    unblock_vclock();
+    sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
     return FUNC_SUCCESS;
 }
 
@@ -487,12 +502,12 @@ int uthread_block(int tid)
 */
 int uthread_resume(int tid)
 {
-    block_vclock();
+    sigprocmask(SIG_BLOCK, &blocked_set, NULL);
     //invalid tid
     if(tid >= MAX_THREAD_NUM || thread_vec[tid] == NULL)
     {
         thread_library_function_fail(thread_resume_fail);
-        unblock_vclock();
+        sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
         return FUNC_FAIL;
     }
     //check if can be resumed
@@ -506,7 +521,7 @@ int uthread_resume(int tid)
             ready_queue.push(thread_vec[tid]);
         }
     }
-    unblock_vclock();
+    sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
     return FUNC_SUCCESS;
 }
 
@@ -525,25 +540,26 @@ int uthread_resume(int tid)
 */
 int uthread_sync(int tid)
 {
-//    block_vclock();
+    sigprocmask(SIG_BLOCK, &blocked_set, NULL);
+//    printf("start sync func\n");
     //invalid tid
     if(tid >= MAX_THREAD_NUM || thread_vec[tid] == NULL)
     {
         thread_library_function_fail(thread_sync_fail_1);
-        unblock_vclock();
+        sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
         return FUNC_FAIL;
     }
     if(current_running->getId() == tid)
     {
         //TODO add error message
-        unblock_vclock();
+        sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
         return FUNC_FAIL;
     }
 //    printf("get id 4 \n");
     if(current_running->getId() == 0)
     {
         thread_library_function_fail(thread_sync_fail_2);
-        unblock_vclock();
+        sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
         return FUNC_FAIL;
     }
     //sync thread
@@ -552,8 +568,13 @@ int uthread_sync(int tid)
 //    printf("get id 5 \n");
     thread_vec[tid]->addToSyncedThreads(current_running->getId());
 
-    scheduling_decision();
-//    unblock_vclock();
+//    scheduling_decision();
+//    printf("end1 sync func\n");
+    sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
+    timer_handler(1);
+    sigprocmask(SIG_BLOCK, &blocked_set, NULL);
+//    printf("end 2 sync func\n");
+    sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
     return FUNC_SUCCESS;
 }
 
@@ -564,10 +585,10 @@ int uthread_sync(int tid)
 */
 int uthread_get_tid()
 {
-//    block_vclock();
+//    sigprocmask(SIG_BLOCK, &blocked_set, NULL);
 ////    printf("get id 6 \n");
 //    int res = current_running->getId();
-//    unblock_vclock();
+//    sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
     return current_running->getId();;
 }
 
@@ -582,6 +603,7 @@ int uthread_get_tid()
 */
 int uthread_get_total_quantums()
 {
+//    sigprocmask(SIG_BLOCK, &blocked_set, NULL);
     total_number_of_quantes = 0;
     for(int i = 0;i < MAX_THREAD_NUM; i++)
     {
@@ -590,6 +612,7 @@ int uthread_get_total_quantums()
             total_number_of_quantes += thread_vec[i]->getQuantum();
         }
     }
+//    sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
     return total_number_of_quantes + total_deleted_threads_quanta;
 }
 
@@ -605,8 +628,8 @@ int uthread_get_total_quantums()
 */
 int uthread_get_quantums(int tid)
 {
-    block_vclock();
+    sigprocmask(SIG_BLOCK, &blocked_set, NULL);
     int res = thread_vec[tid]->getQuantum();
-    unblock_vclock();
+    sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
     return res;
 }

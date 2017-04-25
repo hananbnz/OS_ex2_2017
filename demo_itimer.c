@@ -41,9 +41,17 @@ int main(void) {
 		printf("setitimer error.");
 	}
 
-	for(;;) {
+	for(int i=0;i< 1000;i++) {
 		if (gotit) {
 			printf("Got it!\n");
+			if(i%10 ==0)
+			{
+				sigemptyset(&blocked_set);
+				sigaddset(&blocked_set, SIGVTALRM);
+				sigprocmask(SIG_SETMASK, &blocked_set, NULL);
+				printf("am i blocked?? this is id: %d\n",i);
+				sigprocmask(SIG_UNBLOCK, &blocked_set, NULL);
+			}
 			gotit = 0;
 		}
 	}
